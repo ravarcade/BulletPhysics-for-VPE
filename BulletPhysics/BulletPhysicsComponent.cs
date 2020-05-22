@@ -302,7 +302,7 @@ namespace VisualPinball.Unity.Physics
 			_playfield.SetProperties(
 				0,
 				table.Table.Data.Friction, // get correct playfield params
-				table.Table.Data.Elasticity);
+				table.Table.Data.Elasticity * 100.0f);
 
 			var tr = _worldToLocal.MultiplyPoint(UnityEngine.Vector3.zero);
 			Add(_playfield, Matrix.Translation(tr.x, tr.y, tr.z));
@@ -317,7 +317,7 @@ namespace VisualPinball.Unity.Physics
 			ball.SetProperties(
 				mass, 
 				0.8f, 
-				0.3f);
+				0.01f);
 			Add(ball, go, true); // ball is global object,
 			ballBody = ball.body;
 		}
@@ -332,7 +332,7 @@ namespace VisualPinball.Unity.Physics
 			body.SetProperties(
 				mass,
 				friction,
-				elasticity);
+				elasticity * 100.0f);
 
 			Add(body, Matrix.Identity);
 		}
@@ -343,7 +343,7 @@ namespace VisualPinball.Unity.Physics
 			phyFlipper.SetProperties(
 				phyFlipper.Mass,
 				flipper.data.Friction,
-				flipper.data.Elasticity);
+				flipper.data.Elasticity * 100.0f);
 
 			Add(phyFlipper, flipper.gameObject);
 		}
