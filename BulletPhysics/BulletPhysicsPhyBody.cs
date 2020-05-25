@@ -1,7 +1,6 @@
 using System;
 using UnityEngine;
-using VisualPinball.Unity.Physics.Bullet;
-using VisualPinball.Unity.Physics;
+using VisualPinball.Engine.Unity.BulletPhysics;
 using VisualPinball.Unity.Game;
 using BulletSharp;
 using BulletSharp.Math;
@@ -9,7 +8,7 @@ using Vector3 = BulletSharp.Math.Vector3;
 using System.Collections.Generic;
 using JetBrains.Annotations;
 
-namespace VisualPinball.Unity.Physics.Bullet
+namespace VisualPinball.Engine.Unity.BulletPhysics
 {
 	public enum PhyType
 	{

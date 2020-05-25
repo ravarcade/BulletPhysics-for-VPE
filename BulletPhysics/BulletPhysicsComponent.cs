@@ -1,8 +1,8 @@
 using System;
 using System.Diagnostics;
 using UnityEngine;
+using VisualPinball.Engine.Unity.BulletPhysics;
 using VisualPinball.Unity.Physics;
-using VisualPinball.Unity.Physics.Bullet;
 using VisualPinball.Unity.Game;
 using BulletSharp;
 using BulletSharp.Math;
@@ -14,7 +14,7 @@ using VisualPinball.Unity.VPT.Surface;
 using VisualPinball.Unity.VPT.Flipper;
 using Unity.Mathematics;
 
-namespace VisualPinball.Unity.Physics
+namespace VisualPinball.Engine.Unity.BulletPhysics
 {
 	[AddComponentMenu("Visual Pinball/Bullet Physics Component")]
 	[DisallowMultipleComponent]
@@ -78,9 +78,12 @@ namespace VisualPinball.Unity.Physics
 		// ================================================= MonoBehaviour  ===
 		protected void Awake()
 		{
-			// register Bullet Physics Engine
-			var players = GameObject.FindObjectsOfType<Player>();
-			players?[0].RegisterPhysicsEngine(this);
+			if (enabled)
+			{
+				// register Bullet Physics Engine
+				var players = GameObject.FindObjectsOfType<Player>();
+				players?[0].RegisterPhysicsEngine(this);
+			}
 		}
 
 		protected void Update()
@@ -127,7 +130,7 @@ namespace VisualPinball.Unity.Physics
 		public void OnCreateBall(GameObject go, float radius, float mass) { AddBall(go, radius, mass); }
 		public void OnRotateToEnd(int flipperId) { PhyFlipper.OnRotateToEnd(flipperId); }
 		public void OnRotateToStart(int flipperId) { PhyFlipper.OnRotateToStart(flipperId); }
-		public void OnRegiesterFlipper(GameObject flipperGameObject, int flipperId) { PhyFlipper.OnRegiesterFlipper(flipperGameObject, flipperId); }
+		public void OnRegisterFlipper(GameObject flipperGameObject, int flipperId) { PhyFlipper.OnRegiesterFlipper(flipperGameObject, flipperId); }
 		public int GetFrameCount() { return base._physicsFrame; }
 		public event Action<float> PushUI_PhysicsProcessingTime;
 		public event Action<DebugFlipperData> PushUI_DebugFlipperData;
@@ -338,7 +341,7 @@ namespace VisualPinball.Unity.Physics
 		}
 
 		void AddFlipper(FlipperBehavior flipper)
-		{			
+		{						
 			var phyFlipper = new PhyFlipper(flipper);
 			phyFlipper.SetProperties(
 				phyFlipper.Mass,
@@ -349,3 +352,7 @@ namespace VisualPinball.Unity.Physics
 		}
 	}
 }
+
+/**
+ * https://github.com/AndresTraks/BulletSharp/wiki/Collision-Callbacks-and-Triggers
+ */

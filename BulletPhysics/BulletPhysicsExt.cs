@@ -6,7 +6,7 @@ using BulletSharp;
 using BulletSharp.Math;
 using quaternion = Unity.Mathematics.quaternion;
 
-namespace VisualPinball.Unity.Physics.Bullet
+namespace VisualPinball.Engine.Unity.BulletPhysics
 {
 	public static class BulletPhysicsExt
 	{

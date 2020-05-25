@@ -1,7 +1,6 @@
 using System;
 using UnityEngine;
-using VisualPinball.Unity.Physics.Bullet;
-using VisualPinball.Unity.Physics;
+using VisualPinball.Engine.Unity.BulletPhysics;
 using VisualPinball.Unity.Game;
 using BulletSharp;
 using BulletSharp.Math;
@@ -15,7 +14,7 @@ using ECS_World = Unity.Entities.World;
 using VisualPinball.Unity.VPT.Flipper;
 using System.Collections.Generic;
 
-namespace VisualPinball.Unity.Physics.Bullet
+namespace VisualPinball.Engine.Unity.BulletPhysics
 {
 	public class BulletPhysicsHub : MonoBehaviour, IDisposable
 	{

@@ -1,6 +1,6 @@
 using System;
 using UnityEngine;
-using VisualPinball.Unity.Physics.Bullet;
+using VisualPinball.Engine.Unity.BulletPhysics;
 using VisualPinball.Unity.Physics;
 using VisualPinball.Unity.Game;
 using BulletSharp;
@@ -18,7 +18,7 @@ using Unity.Mathematics;
 using VisualPinball.Unity.Extensions;
 using VisualPinball.Engine.VPT.Flipper;
 
-namespace VisualPinball.Unity.Physics.Bullet
+namespace VisualPinball.Engine.Unity.BulletPhysics
 {
 	public class PhyFlipper : PhyBody
 	{

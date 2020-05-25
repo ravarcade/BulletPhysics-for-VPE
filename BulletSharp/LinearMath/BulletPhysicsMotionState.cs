@@ -5,7 +5,7 @@ using UnityEngine;
 using BulletSharp;
 using BulletSharp.Math;
 
-namespace VisualPinball.Unity.Physics.Bullet
+namespace VisualPinball.Engine.Unity.BulletPhysics
 {
     public class BulletPhysicsMotionState : DefaultMotionState
     {

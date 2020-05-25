@@ -3,7 +3,7 @@ using Unity.Transforms;
 using Unity.Jobs;
 using BulletSharp;
 using BulletSharp.Math;
-using VisualPinball.Unity.Physics.Bullet;
+using VisualPinball.Engine.Unity.BulletPhysics;
 using Unity.Entities.UniversalDelegates;
 using VisualPinball.Unity.Extensions;
 using Unity.Mathematics;
