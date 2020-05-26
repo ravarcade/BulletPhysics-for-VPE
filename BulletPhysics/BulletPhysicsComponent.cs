@@ -35,7 +35,7 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
 		
 		[SerializeField]
 		[Tooltip("Logaritmic:\n-1=0.1,\n 0=1,\n 1=10,\n 2=100,\n...")]
-		public float flipperMassMultiplierLog = 1.0f;
+		public float flipperMassMultiplierLog = 0.0f;
 		
 		[SerializeField] 
 		public float flipperSolenoidOffAccelerationScale = 0.1f;
@@ -319,8 +319,8 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
 			// ToDo: get correct ball params
 			ball.SetProperties(
 				mass, 
-				0.8f, 
-				0.01f);
+				0.3f, 
+				0.012f);
 			Add(ball, go, true); // ball is global object,
 			ballBody = ball.body;
 		}
