@@ -3,12 +3,47 @@
 Adds Bullet Physics.
 **Work in progress.**
 
-## Instalation
-1. Install Visual Pinball Engine, see: https://github.com/freezy/VisualPinball.Engine
-2. Clone this repo: `git clone https://github.com/ravarcade/BulletPhysics-for-VPE.git`
-3. In Unity add package same way as for VPE. 
-4. Create empty game object and add component: `Bullet Physics Component`
+## Install VPE
+1. Download Visual Pinball Engine, see: `https://github.com/freezy/VisualPinball.Engine`
 
-## FAQ
+![](.Doc/Download-VPE.gif)
+
+2. Unzip. For example into `c:\VPE\`
+
+![](.Doc/Unzip-VPE.gif)
+
+3. Create in Unity new project.
+
+4. Install Visual Pinball Engine with `Package Manager`:
+
+![](.Doc/Install-VPE.gif)
+
+5. Import Visual Pinball table.
+
+![](.Doc/Import-VPX.gif)
+
+
+## Install Bullet Physics
+1. Download, same way as VPE.
+
+![](.Doc/Download-BulletPhysics.gif)
+
+2. Unzip. For example int `c:\VPE\`
+
+![](.Doc/Unzip-BulletPhysics.jpg)
+
+3. Install with `Package Manager`, same way as VPE.
+
+![](.Doc/Install-BulletPhysics.gif)
+
+4. Add GameObject and add to it `Bullet Physics Component`.
+
+![](.Doc/Add-BulletPhysics-Component.gif)
+
+5. You can enable / disable Bullet Physics with one click
+
+![](.Doc/OnOffSwitch-BulletPhysics.gif)
+
+## FAQ / Troubleshoting
 1. If VPE is still in without support of IPhysicsEngine, install VPE from my repo:
-`https://github.com/ravarcade/VisualPinball.Engine/tree/dots/vpx-physics`
+`https://github.com/ravarcade/VisualPinball.Engine/zipball/DebugUI`
