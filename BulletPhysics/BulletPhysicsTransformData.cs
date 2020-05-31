@@ -1,10 +1,7 @@
-using Unity.Mathematics;
-using Unity.Entities;
 using System;
+using Unity.Entities;
+using Unity.Mathematics;
 
-using BulletSharp.Math;
-
-[GenerateAuthoringComponent]
 public struct BulletPhysicsTransformData : IComponentData
 {
 	public IntPtr motionStatePtr;

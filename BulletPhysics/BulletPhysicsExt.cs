@@ -1,14 +1,10 @@
-using System;
 using UnityEngine;
-using Unity;
 using Unity.Mathematics;
-using BulletSharp;
-using BulletSharp.Math;
 using quaternion = Unity.Mathematics.quaternion;
 
 namespace VisualPinball.Engine.Unity.BulletPhysics
 {
-	public static class BulletPhysicsExt
+    public static class BulletPhysicsExt
 	{
 
 		public static BulletSharp.Math.Quaternion ToBullet(this UnityEngine.Quaternion v)

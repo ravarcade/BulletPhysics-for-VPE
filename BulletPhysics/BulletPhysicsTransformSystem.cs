@@ -1,15 +1,13 @@
 using Unity.Entities;
+using Unity.Mathematics;
 using Unity.Transforms;
 using Unity.Jobs;
-using BulletSharp;
-using BulletSharp.Math;
 using VisualPinball.Engine.Unity.BulletPhysics;
-using Unity.Entities.UniversalDelegates;
 using VisualPinball.Unity.Extensions;
-using Unity.Mathematics;
+using BulletSharp.Math;
 
 [AlwaysSynchronizeSystem]
-public class BulletPhysicsTransformSystem : JobComponentSystem
+internal class BulletPhysicsTransformSystem : JobComponentSystem
 {
     protected override JobHandle OnUpdate(JobHandle inputDeps)
     {

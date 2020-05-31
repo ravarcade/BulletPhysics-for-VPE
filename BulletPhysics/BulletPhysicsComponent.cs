@@ -1,356 +1,289 @@
 using System;
-using System.Diagnostics;
 using UnityEngine;
-using VisualPinball.Engine.Unity.BulletPhysics;
-using VisualPinball.Unity.Physics;
+using Unity.Entities;
+using Unity.Mathematics;
 using VisualPinball.Unity.Game;
-using BulletSharp;
-using BulletSharp.Math;
-using Vector3 = BulletSharp.Math.Vector3;
-
 using VisualPinball.Unity.VPT.Table;
 using VisualPinball.Unity.VPT.Primitive;
 using VisualPinball.Unity.VPT.Surface;
 using VisualPinball.Unity.VPT.Flipper;
-using Unity.Mathematics;
+using VisualPinball.Unity.DebugAndPhysicsComunicationProxy;
+
+using Vec3 = BulletSharp.Math.Vector3;
+using Matrix = BulletSharp.Math.Matrix;
+using SixLabors.ImageSharp.Processing.Processors.Dithering;
+using BulletSharp;
 
 namespace VisualPinball.Engine.Unity.BulletPhysics
 {
-	[AddComponentMenu("Visual Pinball/Bullet Physics Component")]
-	[DisallowMultipleComponent]
-	public class BulletPhysicsComponent : BulletPhysicsHub, IPhysicsEngine
-	{
-		// properties
-		[SerializeField]
-		float _slope = 9.0f;
-		public float slope { get { return _slope; } set { _slope = value; base.SetGravity(_gravity, slope); } }
+    [AddComponentMenu("Visual Pinball/Bullet Physics Component")]
+    [DisallowMultipleComponent]
+    public class BulletPhysicsComponent : BulletPhysicsHub, IPhysicsEngine
+    {
+        // properties
+        [SerializeField]
+        float _slope = 9.0f;
+        public float slope { get { return _slope; } set { _slope = value; base.SetGravity(_gravity, slope); } }
 
-		[SerializeField]
-		new float _gravity = 9.81f;
-		public float gravity { get { return _gravity; } set { _gravity = value; base.SetGravity(_gravity, slope); } }
+        [SerializeField]
+        new float _gravity = 9.81f;
+        public float gravity { get { return _gravity; } set { _gravity = value; base.SetGravity(_gravity, slope); } }
 
-		[Header("Flipper Settings")]
-		[SerializeField] 
-		public float flipperAcceleration = 1.5f;
-		
-		[SerializeField]
-		[Tooltip("Logaritmic:\n-1=0.1,\n 0=1,\n 1=10,\n 2=100,\n...")]
-		public float flipperMassMultiplierLog = 0.0f;
-		
-		[SerializeField] 
-		public float flipperSolenoidOffAccelerationScale = 0.1f;
-		
-		[SerializeField] 
-		public float flipperOnNearEndAccelerationScale = 0.1f;
+        [Header("Flipper Settings")]
+        [SerializeField]
+        public float flipperAcceleration = 1.5f;
 
-		[SerializeField] 
-		public float flipperNumberOfDegreeNearEnd = 5.0f;
+        [SerializeField]
+        [Tooltip("Logaritmic:\n-1=0.1,\n 0=1,\n 1=10,\n 2=100,\n...")]
+        public float flipperMassMultiplierLog = 0.0f;
 
-		Player _player = null;
+        [SerializeField]
+        public float flipperSolenoidOffAccelerationScale = 0.1f;
 
-		enum TimingMode { RealTime, Atleast60, Locked60 };
-		TimingMode timingMode = TimingMode.Locked60;
-		float _currentPhysicsTime = 0;
+        [SerializeField]
+        public float flipperOnNearEndAccelerationScale = 0.1f;
 
-		float GetTargetTime()
-		{
-			const float dt60fps = 1.0f / 60.0f;
-			float t = _currentPhysicsTime + Time.deltaTime;
+        [SerializeField]
+        public float flipperNumberOfDegreeNearEnd = 5.0f;
 
-			switch (timingMode)
-			{
-				case TimingMode.Atleast60:
-					float dt = Time.deltaTime;
-					if (dt > dt60fps)
-					{
-						dt = dt60fps;
-					}
-					t = _currentPhysicsTime + dt;
-					break;
+        enum TimingMode { RealTime, AtLeast60, Locked60 };
+        TimingMode timingMode = TimingMode.AtLeast60;
+        float _currentPhysicsTime = 0;
 
-				case TimingMode.Locked60:
-					t = _currentPhysicsTime + dt60fps;
-					break;
-			}
-			return t;
-		}
+        float GetTargetTime()
+        {
+            const float dt60fps = 1.0f / 60.0f;
+            float t = _currentPhysicsTime + Time.deltaTime;
 
-		// ================================================= MonoBehaviour  ===
-		protected void Awake()
-		{
-			if (enabled)
-			{
-				// register Bullet Physics Engine
-				var players = GameObject.FindObjectsOfType<Player>();
-				players?[0].RegisterPhysicsEngine(this);
-			}
-		}
+            switch (timingMode)
+            {
+                case TimingMode.AtLeast60:
+                    float dt = Time.deltaTime;
+                    if (dt > dt60fps)
+                    {
+                        dt = dt60fps;
+                    }
+                    t = _currentPhysicsTime + dt;
+                    break;
 
-		protected void Update()
-		{
-			Stopwatch stopwatch = new Stopwatch();
-			stopwatch.Start();
-			base.UpdatePhysics(GetTargetTime());
-			if (PushUI_PhysicsProcessingTime != null)
-				PushUI_PhysicsProcessingTime.Invoke((float)stopwatch.Elapsed.TotalMilliseconds);
-		}
+                case TimingMode.Locked60:
+                    t = _currentPhysicsTime + dt60fps;
+                    break;
+            }
+            return t;
+        }
 
-		protected override void OnDestroy()
-		{			
-			base.OnDestroy();
-		}
+        // ==================================================================== MonoBehaviour  ===
+        protected override void Awake()
+        {
+            base.Awake();
+            if (enabled)
+            {
+                // register Bullet Physics Engine
+                DPProxy.physicsEngine = this;
+                PrepareTable();
+            }
+        }
 
-		// ================================================ IPhysicsEngine  ===
-		public void DebugPressKey(int key) { }
-		public void Initialize(Player player) 
-		{			
-			_player = player;
+        protected void Update()
+        {
+            base.UpdatePhysics(GetTargetTime());
+        }
 
-			foreach (var table in GameObject.FindObjectsOfType<TableBehavior>())
-			{
-				AddPlayfield(table);
+        protected override void OnDestroy()
+        {
+            base.OnDestroy();
+        }
+        
 
-				//flippers = new BRigidBody[table.gameObject.GetComponentsInChildren<FlipperBehavior>(true).Length];
+        public void PrepareTable()
+        {
+            SetGravity(gravity, slope);
 
-				foreach (var flipper in table.gameObject.GetComponentsInChildren<FlipperBehavior>(true))
-					AddFlipper(flipper);
+            foreach (var table in GameObject.FindObjectsOfType<TableBehavior>())
+            {
+                // set table transformations
+                _localToWorld = table.gameObject.transform.localToWorldMatrix;
+                _worldToLocal = table.gameObject.transform.worldToLocalMatrix;
+
+                AddPlayfield(table);
+
+                foreach (var flipper in table.gameObject.GetComponentsInChildren<FlipperBehavior>(true))
+                    AddFlipper(flipper);
+
+                foreach (var primitive in table.gameObject.GetComponentsInChildren<PrimitiveBehavior>(true))
+                    if (primitive.data.IsCollidable)
+                        AddStaticMesh(primitive.gameObject, 0, primitive.data.Friction, primitive.data.Elasticity);
+
+                foreach (var surface in table.gameObject.GetComponentsInChildren<SurfaceBehavior>(true))
+                    if (surface.data.IsCollidable)
+                        AddStaticMesh(surface.gameObject, 0, surface.data.Friction, surface.data.Elasticity);
+
+            }
+        }
+
+        // ==================================================================== IPhysicsEngine ===
+
+        public void OnRegisterFlipper(Entity entity, string name) { /* flipper is registered with PhyFlipperBehaviour */}
+        public void OnPhysicsUpdate(int numSteps, float processingTime) { }
+        public void OnCreateBall(Entity entity, float3 position, float3 velocity, float radius, float mass) { AddBall(entity, position, velocity, radius, mass); }
+        public void OnRotateToEnd(Entity entity) { PhyFlipper.OnRotateToEnd(entity); }
+        public void OnRotateToStart(Entity entity) { PhyFlipper.OnRotateToStart(entity); }
+        public bool UsePureEntity() { return true; }
+        public void ManualBallRoller(Entity entity, float3 targetPosition)
+        {
+            // right now only last ball is affected
+            if (_ballBodyForManualBallRoller != null)
+            {
+                Vec3 target = _worldToLocal.MultiplyPoint(targetPosition).ToBullet();
+                Matrix m;
+                _ballBodyForManualBallRoller.GetWorldTransform(out m);
+                Vec3 ballPos = ((Vector3)BulletPhysicsExt.ExtractTranslationFromMatrix(ref m)).ToBullet();
+                target.Z = ballPos.Z;
+                var dir = (target - ballPos);
+                dir.Normalize();
+                float dist = (target - ballPos).Length * 0.05f;
+                _ballBodyForManualBallRoller.AngularVelocity = Vec3.Zero;
+                _ballBodyForManualBallRoller.LinearVelocity = Vec3.Zero;
+                if (dist > 20) 
+                    dist = 20;
+                if (dist > 0.1f)
+                {
+                    dist = dist + 1.0f;
+                    _ballBodyForManualBallRoller.ApplyCentralImpulse(dist * dist * dir * (float)10);
+                }
+            }
+        }
+
+        public bool GetFlipperState(Entity entity, out FlipperState flipperState) { return PhyFlipper.GetFlipperState(entity, out flipperState); }
+        public float GetFloat(Params param) { return _GetParam(param); }
+        public void SetFloat(Params param, float val) { _GetParam(param) = val; }
+
+        private float _dummyFloatParam = 0;
+        private ref float _GetParam(Params param)
+        {
+            switch (param)
+            {
+                case Params.Physics_FlipperAcc:
+                    return ref flipperAcceleration;
+                case Params.Physics_FlipperMass:
+                    return ref flipperMassMultiplierLog;
+                case Params.Physics_FlipperNumOfDegreeNearEnd:
+                    return ref flipperNumberOfDegreeNearEnd;
+                case Params.Physics_FlipperOffScale:
+                    return ref flipperSolenoidOffAccelerationScale;
+                case Params.Physics_FlipperOnNearEndScale:
+                    return ref flipperOnNearEndAccelerationScale;
+            }
+            return ref _dummyFloatParam;
+        }
 
 
-				foreach (var primitive in table.gameObject.GetComponentsInChildren<PrimitiveBehavior>(true))
-					if (primitive.data.IsCollidable)
-						AddStaticMesh(primitive.gameObject, 0, primitive.data.Friction, primitive.data.Elasticity);
+        //public void OnDebugDraw()
+        //{
+        //    if (GetUI_Float != null)
+        //    {
+        //    	// get params from UI
+        //    	flipperAcceleration = GetUI_Float(0, flipperAcceleration);
+        //    	flipperMassMultiplierLog = GetUI_Float(1, flipperMassMultiplierLog);
+        //    	flipperSolenoidOffAccelerationScale = GetUI_Float(2, flipperSolenoidOffAccelerationScale);
+        //    	flipperOnNearEndAccelerationScale = GetUI_Float(3, flipperOnNearEndAccelerationScale);
+        //    	flipperNumberOfDegreeNearEnd = GetUI_Float(4, flipperNumberOfDegreeNearEnd);
+        //    }
+        //}
 
-				foreach (var surface in table.gameObject.GetComponentsInChildren<SurfaceBehavior>(true))
-					if (surface.data.IsCollidable)
-						AddStaticMesh(surface.gameObject, 0, surface.data.Friction, surface.data.Elasticity);
-				
-			}
-		}
+        // ==================================================================== === ===
 
-		public void OnCreateBall(GameObject go, float radius, float mass) { AddBall(go, radius, mass); }
-		public void OnRotateToEnd(int flipperId) { PhyFlipper.OnRotateToEnd(flipperId); }
-		public void OnRotateToStart(int flipperId) { PhyFlipper.OnRotateToStart(flipperId); }
-		public void OnRegisterFlipper(GameObject flipperGameObject, int flipperId) { PhyFlipper.OnRegiesterFlipper(flipperGameObject, flipperId); }
-		public int GetFrameCount() { return base._physicsFrame; }
-		public event Action<float> PushUI_PhysicsProcessingTime;
-		public event Action<DebugFlipperData> PushUI_DebugFlipperData;
-		public event Func<int, int, int> GetUI_Int;
-		public event Func<int, float, float> GetUI_Float;
+        PhyPlayfield _playfield = null;
+        BulletSharp.RigidBody _ballBodyForManualBallRoller = null;
 
-		BulletSharp.RigidBody ballBody = null;
+        // ==================================================================== Functions used to add GameObjects to physics engine ===
 
-		public void ManualBallRoller(UnityEngine.Vector3 cursor)
-		{
-			if (ballBody != null)
-			{
-				Vector3 target = _worldToLocal.MultiplyPoint(cursor).ToBullet();
-				Matrix m;
-				ballBody.GetWorldTransform(out m);
-				Vector3 ballPos =((UnityEngine.Vector3) BulletPhysicsExt.ExtractTranslationFromMatrix(ref m)).ToBullet();
-				target.Z = ballPos.Z;
-				var dir = (target - ballPos);
-				dir.Normalize();
-				float dist = (target - ballPos).Length * 0.05f;
-				if (dist > 10) dist = 10;
-				if (dist > 0.001f)
-					ballBody.ApplyCentralImpulse(dist * dist * dir);
-			}
-		}
+        void AddPlayfield(TableBehavior table)
+        {
+            _playfield = new PhyPlayfield(table.Table.Width * 0.5f, table.Table.Height * 0.5f);
 
-		public void OnDebugDraw()
-		{
-			if (GetUI_Float != null)
-			{
-				// get params from UI
-				flipperAcceleration = GetUI_Float(0, flipperAcceleration);
-				flipperMassMultiplierLog = GetUI_Float(1, flipperMassMultiplierLog);
-				flipperSolenoidOffAccelerationScale = GetUI_Float(2, flipperSolenoidOffAccelerationScale);
-				flipperOnNearEndAccelerationScale = GetUI_Float(3, flipperOnNearEndAccelerationScale);
-				flipperNumberOfDegreeNearEnd = GetUI_Float(4, flipperNumberOfDegreeNearEnd);
-			}
+            // ToDo: get correct playfield params
+            _playfield.SetProperties(
+                0,
+                table.Table.Data.Friction,
+                table.Table.Data.Elasticity * 100.0f);
 
-			if (PushUI_DebugFlipperData != null)
-			{				
-				PhyFlipper.OnDebugDraw(PushUI_DebugFlipperData);
-			}
-		}
+            var tr = _worldToLocal.MultiplyPoint(UnityEngine.Vector3.zero);
+            Add(_playfield, Matrix.Translation(tr.x, tr.y, tr.z));
+        }
 
-		public float GetDebugFloat(int paramIdx, float currentVal)
-		{
-			if (GetUI_Float != null)
-				return GetUI_Float(paramIdx, currentVal);
+        void AddStaticMesh(GameObject go, float mass, float friction, float elasticity)
+        {
+            var meshes = go.GetComponentsInChildren<MeshFilter>(true);
+            if (meshes.Length == 0)
+                return;
 
-			return currentVal;
-		}
+            var body = new PhyStatic(go, mass);
+            body.SetProperties(
+                mass,
+                friction,
+                elasticity * 100.0f);
 
-		// ====================================================================== === ===
+            Add(body, Matrix.Identity);
+        }
 
-		internal class PhyPlayfield : PhyBody
-		{
-			const float playfieldTickness = 5.0f; // 5mm
-			public PhyPlayfield(float w, float h) : base(PhyType.Playfield)
-			{
-				var constructionInfo = new RigidBodyConstructionInfo(
-					0f,														// static object: mass = 0
-					CreateMotionState(),
-					new BoxShape(w, h, playfieldTickness));
-				constructionInfo.CollisionShape.Margin = 0.04f;
-				constructionInfo.Friction = 0.8f;
-				constructionInfo.Restitution = 0.8f;
+        void AddFlipper(FlipperBehavior flipper)
+        {
+            var phyBody = new PhyFlipper(flipper);
+            phyBody.SetProperties(
+                phyBody.Mass,
+                flipper.data.Friction,
+                flipper.data.Elasticity * 100.0f);
+            
+            var phyFlipperBehaviour = flipper.gameObject.AddComponent<PhyFlipperBehaviour>();
+            phyFlipperBehaviour.MotionStatePtr = phyBody.GetMotionStateNativePtr();
+            phyFlipperBehaviour.RigidBodyIdx = phyBody.RigidBodyIdx;
+            phyFlipperBehaviour.Name = flipper.gameObject.name;
+            phyFlipperBehaviour.phyBody = phyBody;
 
-				collisionObject = new RigidBody(constructionInfo);								
-			}
-		}
+            Add(phyBody, flipper.gameObject);
+        }
 
-		PhyPlayfield _playfield = null;
+        void AddBall(Entity entity, float3 position, float3 velocity, float radius, float mass)
+        {
+            var phyBody = new PhyBall(radius, mass);
+            phyBody.SetProperties(
+                mass,
+                0.3f,
+                0.012f);
+            Add(phyBody, entity, position);
 
-		// ====================================================================== === ===
+            // last added ball is for manual ball roller
+            _ballBodyForManualBallRoller = phyBody.body; 
+        }
 
-		internal class PhyBall : PhyBody
-		{
-			public PhyBall(float radius, float mass) : base(PhyType.Ball)
-			{
-				var shape = new SphereShape(radius);
-				Vector3 localInertia = Vector3.Zero;
-				if (mass > 1e10)
-					shape.CalculateLocalInertia(mass);
+        // ==================================================================== === ===
 
-				shape.Margin = 0.04f;
-				var constructionInfo = new RigidBodyConstructionInfo(
-					mass,                                                       // static object: mass = 0
-					CreateMotionState(),
-					shape,
-					localInertia
-				);
+        /// <summary>
+        /// Register flipper and add BulletPhysicsTransformData component to Entity        
+        /// </summary>
+        internal class PhyFlipperBehaviour : MonoBehaviour, IConvertGameObjectToEntity
+        {
+            public string Name;
+            public IntPtr MotionStatePtr;
+            public int RigidBodyIdx;
+            public PhyFlipper phyBody;
 
-				collisionObject = new RigidBody(constructionInfo);								
-			}
-		}
-
-		// ====================================================================== === ===
-
-		internal class PhyMesh : PhyBody
-		{
-			public PhyMesh(GameObject go, float mass) : base(PhyType.Static)
-			{
-				TriangleMesh btMesh = new TriangleMesh();
-
-				var mesh = GetCombinedMesh(go);
-				AddMesh(ref btMesh, mesh);				
-				var shape = new BvhTriangleMeshShape(btMesh, true);
-				shape.Margin = 0.04f;
-
-				var constructionInfo = new RigidBodyConstructionInfo(
-					mass,                                                       // static object: mass = 0
-					CreateMotionState(),
-					shape
-				);
-
-				collisionObject = new RigidBody(constructionInfo);
-			}
-
-			UnityEngine.Mesh GetCombinedMesh(GameObject go)
-			{
-				UnityEngine.Mesh mesh;
-				var meshes = go.GetComponentsInChildren<MeshFilter>(true);
-
-				if (meshes.Length == 1)
-				{
-					mesh = meshes[0].sharedMesh;
-				}
-				else 
-				{
-					CombineInstance[] combine = new CombineInstance[meshes.Length];
-					for (int i = 0; i < meshes.Length; ++i)
-					{
-						combine[i].mesh = meshes[i].sharedMesh;
-						combine[i].transform = Matrix4x4.TRS(meshes[i].transform.localPosition, meshes[i].transform.localRotation, meshes[i].transform.localScale);
-					}
-					UnityEngine.Mesh combinedMesh = new UnityEngine.Mesh();
-					combinedMesh.CombineMeshes(combine);
-
-					mesh = combinedMesh;
-				}
-
-				return mesh;
-			}
-
-			void AddMesh(ref TriangleMesh triangleMesh,  UnityEngine.Mesh mesh)
-			{
-				UnityEngine.Vector3[] verts = mesh.vertices;
-				int[] tris = mesh.triangles;
-
-				TriangleMesh tm = new TriangleMesh();
-				for (int i = 0; i < tris.Length; i += 3)
-				{
-					triangleMesh.AddTriangle(verts[tris[i]].ToBullet(),
-								   verts[tris[i + 1]].ToBullet(),
-								   verts[tris[i + 2]].ToBullet(),
-								   true);
-				}
-			}
-		}
-
-		// ====================================================================== === ===
-
-		void AddPlayfield(TableBehavior table)
-		{
-			_localToWorld = table.gameObject.transform.localToWorldMatrix;
-			_worldToLocal = table.gameObject.transform.worldToLocalMatrix;
-			SetGravity(gravity, slope);
-
-			_playfield = new PhyPlayfield(table.Table.Width * 0.5f, table.Table.Height * 0.5f);
-
-			// ToDo: get correct playfield params
-			_playfield.SetProperties(
-				0,
-				table.Table.Data.Friction, // get correct playfield params
-				table.Table.Data.Elasticity * 100.0f);
-
-			var tr = _worldToLocal.MultiplyPoint(UnityEngine.Vector3.zero);
-			Add(_playfield, Matrix.Translation(tr.x, tr.y, tr.z));
-
-		}
-
-		void AddBall(GameObject go, float radius, float mass)
-		{
-			var ball = new PhyBall(radius, mass);
-
-			// ToDo: get correct ball params
-			ball.SetProperties(
-				mass, 
-				0.3f, 
-				0.012f);
-			Add(ball, go, true); // ball is global object,
-			ballBody = ball.body;
-		}
-
-		void AddStaticMesh(GameObject go, float mass, float friction, float elasticity)
-		{
-			var meshes = go.GetComponentsInChildren<MeshFilter>(true);
-			if (meshes.Length == 0)
-				return;
-
-			var body = new PhyMesh(go, mass);
-			body.SetProperties(
-				mass,
-				friction,
-				elasticity * 100.0f);
-
-			Add(body, Matrix.Identity);
-		}
-
-		void AddFlipper(FlipperBehavior flipper)
-		{						
-			var phyFlipper = new PhyFlipper(flipper);
-			phyFlipper.SetProperties(
-				phyFlipper.Mass,
-				flipper.data.Friction,
-				flipper.data.Elasticity * 100.0f);
-
-			Add(phyFlipper, flipper.gameObject);
-		}
-	}
+            public void Convert(Entity entity, EntityManager dstManager, GameObjectConversionSystem conversionSystem)
+            {
+                DPProxy.OnRegisterFlipper(entity, Name);
+                PhyFlipper.OnRegiesterFlipper(entity, phyBody);
+                dstManager.AddComponentData(entity, new BulletPhysicsTransformData
+                {
+                    motionStatePtr = MotionStatePtr,
+#if UNITY_EDITOR
+                    rigidBodyIdx = RigidBodyIdx
+#endif
+                });
+            }
+        }
+    }
 }
 
 /**
