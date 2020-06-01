@@ -121,7 +121,7 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
         /// </summary>
         void _FlipperUpdate(ref BulletPhysicsComponent bpc)
         {
-            //_Dbg_OnFlipperUpdate(ref bpc);			
+            _UpdateFlipperMass(ref bpc);			
             float M = (float)(_usedFlipperMass * 1e7);
             float angle = _GetAngle();
             float maxAngle = math.abs(_startAngle - _endAngle) * (180.0f / math.PI);
@@ -155,6 +155,20 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
             return math.abs(rot.z - _startAngle) * (180.0f / math.PI);
         }
 
+        void _UpdateFlipperMass(ref BulletPhysicsComponent bpc)
+		{
+			// Update params from ImGui menu
+			float newMass = math.pow(10.0f, bpc.flipperMassMultiplierLog);
+			if (newMass != _prevFlipperMassMultiplierLog)
+			{
+				_prevFlipperMassMultiplierLog = newMass;
+				_usedFlipperMass = Mass * _prevFlipperMassMultiplierLog;
+				Vector3 inertia = body.CollisionShape.CalculateLocalInertia(_usedFlipperMass);
+				body.SetMassProps(_usedFlipperMass, inertia);
+			}
+		}
+
+
         // ========================================================================== Data ===
 
         TypedConstraint _constraint = null;
@@ -169,6 +183,7 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
 
         // flipper params
         private float _usedFlipperMass = 1.0f;
+        private float _prevFlipperMassMultiplierLog = float.MaxValue;
 
         // ========================================================================== Static Methods & Data ===
 
