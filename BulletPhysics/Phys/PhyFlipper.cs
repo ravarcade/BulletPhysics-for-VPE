@@ -22,15 +22,7 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
             _startAngle = flipper.data.StartAngle * Mathf.PI / 180.0f;
             _endAngle = flipper.data.EndAngle * Mathf.PI / 180.0f;
 
-            var shape = _AddFlipperCylinders(flipper);
-            shape.Margin = 0.04f;
-
-            var constructionInfo = new RigidBodyConstructionInfo(
-                flipper.data.Mass,
-                CreateMotionState(),
-                shape);
-
-            collisionObject = new RigidBody(constructionInfo);
+            SetupRigidBody(flipper.data.Mass, _AddFlipperCylinders(flipper));
         }
 
         // Adding hinge should be done after RigidBody is added to world
@@ -121,7 +113,7 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
         /// </summary>
         void _FlipperUpdate(ref BulletPhysicsComponent bpc)
         {
-            _UpdateFlipperMass(ref bpc);			
+            _UpdateFlipperMass(ref bpc);
             float M = (float)(_usedFlipperMass * 1e7);
             float angle = _GetAngle();
             float maxAngle = math.abs(_startAngle - _endAngle) * (180.0f / math.PI);
@@ -156,17 +148,17 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
         }
 
         void _UpdateFlipperMass(ref BulletPhysicsComponent bpc)
-		{
-			// Update params from ImGui menu
-			float newMass = math.pow(10.0f, bpc.flipperMassMultiplierLog);
-			if (newMass != _prevFlipperMassMultiplierLog)
-			{
-				_prevFlipperMassMultiplierLog = newMass;
-				_usedFlipperMass = Mass * _prevFlipperMassMultiplierLog;
-				Vector3 inertia = body.CollisionShape.CalculateLocalInertia(_usedFlipperMass);
-				body.SetMassProps(_usedFlipperMass, inertia);
-			}
-		}
+        {
+            // Update params from ImGui menu
+            float newMass = math.pow(10.0f, bpc.flipperMassMultiplierLog);
+            if (newMass != _prevFlipperMassMultiplierLog)
+            {
+                _prevFlipperMassMultiplierLog = newMass;
+                _usedFlipperMass = Mass * _prevFlipperMassMultiplierLog;
+                Vector3 inertia = body.CollisionShape.CalculateLocalInertia(_usedFlipperMass);
+                body.SetMassProps(_usedFlipperMass, inertia);
+            }
+        }
 
 
         // ========================================================================== Data ===
@@ -220,6 +212,6 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
                 entry.Value._FlipperUpdate(ref bpc);
             }
         }
-        
+
     }
 }

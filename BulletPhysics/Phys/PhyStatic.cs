@@ -11,16 +11,8 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
 
             var mesh = GetCombinedMesh(go);
             AddMesh(ref btMesh, mesh);
-            var shape = new BvhTriangleMeshShape(btMesh, true);
-            shape.Margin = 0.04f;
 
-            var constructionInfo = new RigidBodyConstructionInfo(
-                mass,                                                       // static object: mass = 0
-                CreateMotionState(),
-                shape
-            );
-
-            collisionObject = new RigidBody(constructionInfo);
+            SetupRigidBody(mass, new BvhTriangleMeshShape(btMesh, true));
         }
 
         UnityEngine.Mesh GetCombinedMesh(GameObject go)

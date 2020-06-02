@@ -8,15 +8,7 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
 
         public PhyPlayfield(float w, float h) : base(PhyType.Playfield)
         {
-            var constructionInfo = new RigidBodyConstructionInfo(
-                0f,                                                     // static object: mass = 0
-                CreateMotionState(),
-                new BoxShape(w, h, playfieldTickness));
-            constructionInfo.CollisionShape.Margin = 0.04f;
-            constructionInfo.Friction = 0.8f;
-            constructionInfo.Restitution = 0.8f;
-
-            collisionObject = new RigidBody(constructionInfo);
+            SetupRigidBody(0, new BoxShape(w, h, playfieldTickness));
         }
     }
 }

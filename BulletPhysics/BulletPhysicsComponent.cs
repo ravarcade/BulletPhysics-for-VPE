@@ -237,8 +237,10 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
                 flipper.data.Elasticity * 100.0f);
             
             var phyFlipperBehaviour = flipper.gameObject.AddComponent<PhyFlipperBehaviour>();
-            phyFlipperBehaviour.MotionStatePtr = phyBody.GetMotionStateNativePtr();
-            phyFlipperBehaviour.RigidBodyIdx = phyBody.RigidBodyIdx;
+            phyFlipperBehaviour.motionStateView = phyBody.body.MotionState.ToView();
+#if UNITY_EDITOR
+            phyFlipperBehaviour.rigidBodyView = phyBody.body.ToView();
+#endif
             phyFlipperBehaviour.Name = flipper.gameObject.name;
             phyFlipperBehaviour.phyBody = phyBody;
 
@@ -266,8 +268,10 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
         internal class PhyFlipperBehaviour : MonoBehaviour, IConvertGameObjectToEntity
         {
             public string Name;
-            public IntPtr MotionStatePtr;
-            public int RigidBodyIdx;
+            public MotionStateNativeView motionStateView;
+#if UNITY_EDITOR
+            public RigidBodyNativeView rigidBodyView;
+#endif
             public PhyFlipper phyBody;
 
             public void Convert(Entity entity, EntityManager dstManager, GameObjectConversionSystem conversionSystem)
@@ -276,9 +280,9 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
                 PhyFlipper.OnRegiesterFlipper(entity, phyBody);
                 dstManager.AddComponentData(entity, new BulletPhysicsTransformData
                 {
-                    motionStatePtr = MotionStatePtr,
+                    motionStateView = motionStateView,
 #if UNITY_EDITOR
-                    rigidBodyIdx = RigidBodyIdx
+                    rigidBodyView = rigidBodyView,
 #endif
                 });
             }

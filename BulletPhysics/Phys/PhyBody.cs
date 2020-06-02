@@ -21,70 +21,57 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
 
     public class PhyBody
     {
+        private PhyType _phyType;
+        private CollisionObject _collisionObject;
+
+        public object userObject { get; set; }
+
         public PhyBody(PhyType pType = PhyType.Static)
         {
             _phyType = pType;
         }
 
-        public object userObject { get; set; }
-
-        private CollisionObject _collisionObject;
-        protected CollisionObject collisionObject
+        public void SetupRigidBody(float mass, CollisionShape shape, float margin = 0.04f)
         {
-            get => _collisionObject;
-            set { _collisionObject = value; _AddToList(); }
+            shape.Margin = margin;
+
+            var constructionInfo = new RigidBodyConstructionInfo(
+                    mass,
+                    CreateMotionState(),
+                    shape);
+
+            _collisionObject = new RigidBody(constructionInfo);
         }
 
-        protected Vector3 inertia = Vector3.Zero;
-
-        private PhyType _phyType;
         public short phyType { get { return (short)_phyType; } }
 
-        public RigidBody body { get { return (RigidBody)collisionObject; } }
+        public RigidBody body { get { return (RigidBody)_collisionObject; } }
         public virtual TypedConstraint Constraint { get { return null; } }
 
         public void SetProperties(float mass, float friction, float restitution)
         {
-            if (collisionObject != null)
+            if (_collisionObject != null)
             {
-                collisionObject.Friction = friction;
-                collisionObject.Restitution = restitution;
+                _collisionObject.Friction = friction;
+                _collisionObject.Restitution = restitution;
 
                 body.Friction = friction;
                 body.Restitution = restitution;
 
                 if (mass > 0)
                 {
-                    inertia = body.CollisionShape.CalculateLocalInertia(mass);
+                    Vector3 inertia = body.CollisionShape.CalculateLocalInertia(mass);
                     body.SetMassProps(mass, inertia);
                 }
             }
         }
 
-        public static MotionState CreateMotionState() { return new BulletPhysicsMotionState(); }
+        public static MotionState CreateMotionState() { return new DefaultMotionState(); }
 
         public void SetWorldTransform(Matrix m)
         {
-            ((BulletPhysicsMotionState)body.MotionState).SetWorldTransform(ref m);
+            body.MotionState.SetWorldTransform(ref m);
             body.WorldTransform = m;
         }
-
-        public IntPtr GetMotionStateNativePtr() { return ((BulletPhysicsMotionState)body.MotionState).GetNativePtr(); }
-
-        // ============================== debug and monitoring ===
-
-        static int PhyBodyCounter = 0;
-        static readonly Dictionary<int, CollisionObject> _collisionObjects = new Dictionary<int, CollisionObject>();
-        public static RigidBody GetCollisionObject(int idx) { return (RigidBody)_collisionObjects?[idx]; }
-
-        private void _AddToList()
-        {
-            RigidBodyIdx = PhyBodyCounter;
-            _collisionObjects[RigidBodyIdx] = collisionObject;
-            ++PhyBodyCounter;
-        }
-
-        public int RigidBodyIdx = -1;
-
     }
 }
