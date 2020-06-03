@@ -74,16 +74,15 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
 
         // ==================================================================== MonoBehaviour  ===
 
+        protected override void Awake()
+        {
+            enabled = false; // will be enabled by BulletPhysics if this is the physics engine.
+        }
+
         protected void Update()
         {
             base.UpdatePhysics(GetTargetTime());
         }
-
-        protected override void OnDestroy()
-        {
-            base.OnDestroy();
-        }
-
 
         public void PrepareTable()
         {
