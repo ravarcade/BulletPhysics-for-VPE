@@ -5,7 +5,7 @@ using Unity.Mathematics;
 using VisualPinball.Unity.VPT.Flipper;
 using VisualPinball.Unity.Extensions;
 using BulletSharp;
-
+using VisualPinball.Unity.Physics.DebugUI;
 using Vector3 = BulletSharp.Math.Vector3;
 using Matrix = BulletSharp.Math.Matrix;
 
@@ -183,20 +183,19 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
 
         public static void OnRotateToEnd(Entity entity) { _flippers[entity].SolenoidState = 1; }
         public static void OnRotateToStart(Entity entity) { _flippers[entity].SolenoidState = -1; }
-        public static bool GetFlipperState(Entity entity, out VisualPinball.Unity.DebugAndPhysicsComunicationProxy.FlipperState flipperState)
+
+        public static DebugFlipperState[] GetFlipperStates()
         {
-            bool ret = _flippers.ContainsKey(entity);
-            float angle = 0;
-            bool solenoid = false;
-            if (ret)
+            var states = new DebugFlipperState[_flippers.Count];
+            var i = 0;
+            foreach (var entity in _flippers.Keys)
             {
-                var phyFlipper = _flippers[entity];
-                angle = phyFlipper._GetAngle();
-                solenoid = phyFlipper.SolenoidState == 1;
+                var flipper = _flippers[entity];
+                states[i] = new DebugFlipperState(entity, flipper._GetAngle(), flipper.SolenoidState == 1);
+                i++;
             }
 
-            flipperState = new VisualPinball.Unity.DebugAndPhysicsComunicationProxy.FlipperState(angle, solenoid);
-            return ret;
+            return states;
         }
 
         public static void OnRegiesterFlipper(Entity entity, PhyFlipper phyBody)

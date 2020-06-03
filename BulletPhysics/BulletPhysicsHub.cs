@@ -7,7 +7,8 @@ using VisualPinball.Unity.Game;
 using VisualPinball.Unity.VPT.Flipper;
 using VisualPinball.Unity.Physics.SystemGroup;
 using BulletSharp;
-
+using VisualPinball.Engine.Common;
+using VisualPinball.Unity.Physics.DebugUI;
 using Vector3 = BulletSharp.Math.Vector3;
 using Matrix = BulletSharp.Math.Matrix;
 using ECS_World = Unity.Entities.World;
@@ -174,7 +175,9 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
                     _physicsFrame += executedSteps;
                     --steps;
 
-                    DPProxy.debugUI?.OnPhysicsUpdate(1, (float)stopwatch.Elapsed.TotalMilliseconds);
+                    if (EngineProvider<IDebugUINew>.Exists) {
+                        EngineProvider<IDebugUINew>.Get().OnPhysicsUpdate(1, (float)stopwatch.Elapsed.TotalMilliseconds);
+                    }
                 }
             }
         }
