@@ -7,7 +7,7 @@ using VisualPinball.Unity.VPT.Table;
 
 namespace VisualPinball.Engine.Unity.BulletPhysics
 {
-	public class BulletPhysics : IPhysicsEngineNew
+	public class BulletPhysics : IPhysicsEngine
 	{
 		public string Name => "Bullet Physics";
 

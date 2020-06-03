@@ -83,7 +83,7 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
         {
             base.OnDestroy();
         }
-        
+
 
         public void PrepareTable()
         {
@@ -141,7 +141,7 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
                 float dist = (target - ballPos).Length * 0.05f;
                 _ballBodyForManualBallRoller.AngularVelocity = Vec3.Zero;
                 _ballBodyForManualBallRoller.LinearVelocity = Vec3.Zero;
-                if (dist > 20) 
+                if (dist > 20)
                     dist = 20;
                 if (dist > 0.1f)
                 {
@@ -234,7 +234,7 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
                 phyBody.Mass,
                 flipper.data.Friction,
                 flipper.data.Elasticity * 100.0f);
-            
+
             var phyFlipperBehaviour = flipper.gameObject.AddComponent<PhyFlipperBehaviour>();
             phyFlipperBehaviour.motionStateView = phyBody.body.MotionState.ToView();
 #if UNITY_EDITOR
@@ -256,13 +256,13 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
             Add(phyBody, entity, position);
 
             // last added ball is for manual ball roller
-            _ballBodyForManualBallRoller = phyBody.body; 
+            _ballBodyForManualBallRoller = phyBody.body;
         }
 
         // ==================================================================== === ===
 
         /// <summary>
-        /// Register flipper and add BulletPhysicsTransformData component to Entity        
+        /// Register flipper and add BulletPhysicsTransformData component to Entity
         /// </summary>
         internal class PhyFlipperBehaviour : MonoBehaviour, IConvertGameObjectToEntity
         {
@@ -275,8 +275,8 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
 
             public void Convert(Entity entity, EntityManager dstManager, GameObjectConversionSystem conversionSystem)
             {
-                if (EngineProvider<IDebugUINew>.Exists) {
-                    EngineProvider<IDebugUINew>.Get().OnRegisterFlipper(entity, Name);
+                if (EngineProvider<IDebugUI>.Exists) {
+                    EngineProvider<IDebugUI>.Get().OnRegisterFlipper(entity, Name);
                 }
 
                 PhyFlipper.OnRegiesterFlipper(entity, phyBody);

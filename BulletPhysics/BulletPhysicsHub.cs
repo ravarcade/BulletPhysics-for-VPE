@@ -175,8 +175,8 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
                     _physicsFrame += executedSteps;
                     --steps;
 
-                    if (EngineProvider<IDebugUINew>.Exists) {
-                        EngineProvider<IDebugUINew>.Get().OnPhysicsUpdate(1, (float)stopwatch.Elapsed.TotalMilliseconds);
+                    if (EngineProvider<IDebugUI>.Exists) {
+                        EngineProvider<IDebugUI>.Get().OnPhysicsUpdate(1, (float)stopwatch.Elapsed.TotalMilliseconds);
                     }
                 }
             }
