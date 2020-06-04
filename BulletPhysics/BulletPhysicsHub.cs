@@ -59,17 +59,6 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
 		};
 
         // ========================================================================================
-        // used only if AxisSweep3 is used as Broadphase (see: Initialize())
-        Vector3 _axis3SweepBroadphaseMin = new Vector3(-1000.0f, -1000.0f, -30.0f);
-        Vector3 _axis3SweepBroadphaseMax = new Vector3(2000.0f, 3000.0f, 1000.0f);
-        const int _axis3SweepMaxProxies = 32766;
-
-        // ========================================================================================
-
-        protected virtual void Awake()
-        {
-            _Initialize();
-        }
 
         protected virtual void OnDestroy()
         {
@@ -123,14 +112,19 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
             _isDisposed = true;
         }
 
-        private void _Initialize()
+        public void Initialize()
         {
+            if (World != null) // check if we are already initialized
+                return;
+
+            enabled = true;
+
             CollisionConf = new DefaultCollisionConfiguration();
             Dispatcher = new CollisionDispatcher(CollisionConf);
 
             // Select Brodphase
             Broadphase = new DbvtBroadphase();
-            //Broadphase = new AxisSweep3(_axis3SweepBroadphaseMin, _axis3SweepBroadphaseMax, _axis3SweepMaxProxies);
+            //Broadphase = new AxisSweep3(new Vector3(-1000.0f, -1000.0f, -30.0f), new Vector3(2000.0f, 3000.0f, 1000.0f), 32766);
 
             DantzigSolver dtsolver = new DantzigSolver();
             Solver = new MlcpSolver(dtsolver);

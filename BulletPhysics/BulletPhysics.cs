@@ -32,6 +32,7 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
 			if (_component == null) {
 				_component = tableBehavior.gameObject.AddComponent<BulletPhysicsComponent>();
 			}
+			_component.Initialize();
 			_component.PrepareTable();
 		}
 
@@ -48,12 +49,12 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
 
 		public void FlipperRotateToEnd(in Entity entity)
 		{
-			_component.OnRotateToStart(entity);
+			_component.OnRotateToEnd(entity);
 		}
 
 		public void FlipperRotateToStart(in Entity entity)
 		{
-			_component.OnRotateToEnd(entity);
+			_component.OnRotateToStart(entity);
 		}
 
 		public DebugFlipperState[] FlipperGetDebugStates()

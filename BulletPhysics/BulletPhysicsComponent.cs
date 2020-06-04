@@ -25,7 +25,7 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
         public float slope { get { return _slope; } set { _slope = value; base.SetGravity(_gravity, slope); } }
 
         [SerializeField]
-        new float _gravity = 9.81f;
+        float _gravity = 9.81f;
         public float gravity { get { return _gravity; } set { _gravity = value; base.SetGravity(_gravity, slope); } }
 
         [Header("Flipper Settings")]
@@ -74,7 +74,7 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
 
         // ==================================================================== MonoBehaviour  ===
 
-        protected override void Awake()
+        protected void Awake()
         {
             enabled = false; // will be enabled by BulletPhysics if this is the physics engine.
         }
