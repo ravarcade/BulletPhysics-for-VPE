@@ -1,24 +1,23 @@
-using System;
-using UnityEngine;
+using BulletSharp;
+using BulletSharp.Math;
 using Unity.Entities;
 using Unity.Mathematics;
-using VisualPinball.Unity.Game;
-using VisualPinball.Unity.VPT.Table;
+using UnityEngine;
+using VisualPinball.Engine.Common;
+using VisualPinball.Unity.Physics.DebugUI;
+using VisualPinball.Unity.VPT.Ball;
+using VisualPinball.Unity.VPT.Flipper;
 using VisualPinball.Unity.VPT.Primitive;
 using VisualPinball.Unity.VPT.Surface;
-using VisualPinball.Unity.VPT.Flipper;
-using VisualPinball.Unity.DebugAndPhysicsComunicationProxy;
-
+using VisualPinball.Unity.VPT.Table;
 using Vec3 = BulletSharp.Math.Vector3;
-using Matrix = BulletSharp.Math.Matrix;
-using SixLabors.ImageSharp.Processing.Processors.Dithering;
-using BulletSharp;
+using Vector3 = UnityEngine.Vector3;
 
 namespace VisualPinball.Engine.Unity.BulletPhysics
 {
     [AddComponentMenu("Visual Pinball/Bullet Physics Component")]
     [DisallowMultipleComponent]
-    public class BulletPhysicsComponent : BulletPhysicsHub, IPhysicsEngine
+    public class BulletPhysicsComponent : BulletPhysicsHub
     {
         // properties
         [SerializeField]
@@ -74,27 +73,16 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
         }
 
         // ==================================================================== MonoBehaviour  ===
+
         protected override void Awake()
         {
-            base.Awake();
-            if (enabled)
-            {
-                // register Bullet Physics Engine
-                DPProxy.physicsEngine = this;
-                PrepareTable();
-            }
+            enabled = false; // will be enabled by BulletPhysics if this is the physics engine.
         }
 
         protected void Update()
         {
             base.UpdatePhysics(GetTargetTime());
         }
-
-        protected override void OnDestroy()
-        {
-            base.OnDestroy();
-        }
-        
 
         public void PrepareTable()
         {
@@ -124,13 +112,20 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
 
         // ==================================================================== IPhysicsEngine ===
 
-        public void OnRegisterFlipper(Entity entity, string name) { /* flipper is registered with PhyFlipperBehaviour */}
-        public void OnPhysicsUpdate(int numSteps, float processingTime) { }
-        public void OnCreateBall(Entity entity, float3 position, float3 velocity, float radius, float mass) { AddBall(entity, position, velocity, radius, mass); }
-        public void OnRotateToEnd(Entity entity) { PhyFlipper.OnRotateToEnd(entity); }
-        public void OnRotateToStart(Entity entity) { PhyFlipper.OnRotateToStart(entity); }
-        public bool UsePureEntity() { return true; }
-        public void ManualBallRoller(Entity entity, float3 targetPosition)
+
+        public Entity BallCreate(Mesh mesh, Material material, in float3 worldPos, in float3 localPos, in float3 localVel,
+            in float scale, in float mass, in float radius)
+        {
+            var entity = BallManager.CreatePureEntity(mesh, material, worldPos, scale * radius * 2);
+            AddBall(entity, localPos, localVel, radius, mass);
+            return entity;
+        }
+
+        public void OnRotateToEnd(Entity entity) => PhyFlipper.OnRotateToEnd(entity);
+
+        public void OnRotateToStart(Entity entity) => PhyFlipper.OnRotateToStart(entity);
+
+        public void ManualBallRoller(in Entity entity, in float3 targetPosition)
         {
             // right now only last ball is affected
             if (_ballBodyForManualBallRoller != null)
@@ -145,7 +140,7 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
                 float dist = (target - ballPos).Length * 0.05f;
                 _ballBodyForManualBallRoller.AngularVelocity = Vec3.Zero;
                 _ballBodyForManualBallRoller.LinearVelocity = Vec3.Zero;
-                if (dist > 20) 
+                if (dist > 20)
                     dist = 20;
                 if (dist > 0.1f)
                 {
@@ -155,26 +150,29 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
             }
         }
 
-        public bool GetFlipperState(Entity entity, out FlipperState flipperState) { return PhyFlipper.GetFlipperState(entity, out flipperState); }
-        public float GetFloat(Params param) { return _GetParam(param); }
-        public void SetFloat(Params param, float val) { _GetParam(param) = val; }
+
+        public float GetFloat(DebugFlipperSliderParam param) => _GetParam(param);
+
+        public void SetFloat(DebugFlipperSliderParam param, float val) => _GetParam(param) = val;
 
         private float _dummyFloatParam = 0;
-        private ref float _GetParam(Params param)
+
+        private ref float _GetParam(DebugFlipperSliderParam param)
         {
             switch (param)
             {
-                case Params.Physics_FlipperAcc:
+                case DebugFlipperSliderParam.Acc:
                     return ref flipperAcceleration;
-                case Params.Physics_FlipperMass:
+                case DebugFlipperSliderParam.Mass:
                     return ref flipperMassMultiplierLog;
-                case Params.Physics_FlipperNumOfDegreeNearEnd:
+                case DebugFlipperSliderParam.NumOfDegreeNearEnd:
                     return ref flipperNumberOfDegreeNearEnd;
-                case Params.Physics_FlipperOffScale:
+                case DebugFlipperSliderParam.OffScale:
                     return ref flipperSolenoidOffAccelerationScale;
-                case Params.Physics_FlipperOnNearEndScale:
+                case DebugFlipperSliderParam.OnNearEndScale:
                     return ref flipperOnNearEndAccelerationScale;
             }
+
             return ref _dummyFloatParam;
         }
 
@@ -235,7 +233,7 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
                 phyBody.Mass,
                 flipper.data.Friction,
                 flipper.data.Elasticity * 100.0f);
-            
+
             var phyFlipperBehaviour = flipper.gameObject.AddComponent<PhyFlipperBehaviour>();
             phyFlipperBehaviour.motionStateView = phyBody.body.MotionState.ToView();
 #if UNITY_EDITOR
@@ -257,13 +255,13 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
             Add(phyBody, entity, position);
 
             // last added ball is for manual ball roller
-            _ballBodyForManualBallRoller = phyBody.body; 
+            _ballBodyForManualBallRoller = phyBody.body;
         }
 
         // ==================================================================== === ===
 
         /// <summary>
-        /// Register flipper and add BulletPhysicsTransformData component to Entity        
+        /// Register flipper and add BulletPhysicsTransformData component to Entity
         /// </summary>
         internal class PhyFlipperBehaviour : MonoBehaviour, IConvertGameObjectToEntity
         {
@@ -276,7 +274,10 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
 
             public void Convert(Entity entity, EntityManager dstManager, GameObjectConversionSystem conversionSystem)
             {
-                DPProxy.OnRegisterFlipper(entity, Name);
+                if (EngineProvider<IDebugUI>.Exists) {
+                    EngineProvider<IDebugUI>.Get().OnRegisterFlipper(entity, Name);
+                }
+
                 PhyFlipper.OnRegiesterFlipper(entity, phyBody);
                 dstManager.AddComponentData(entity, new BulletPhysicsTransformData
                 {
