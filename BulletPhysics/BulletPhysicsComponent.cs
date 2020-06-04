@@ -113,12 +113,15 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
         // ==================================================================== IPhysicsEngine ===
 
 
-        public Entity BallCreate(Mesh mesh, Material material, in float3 worldPos, in float3 localPos, in float3 localVel,
+        public void BallCreate(Mesh mesh, Material material, in float3 worldPos, in float3 localPos, in float3 localVel,
             in float scale, in float mass, in float radius)
         {
             var entity = BallManager.CreatePureEntity(mesh, material, worldPos, scale * radius * 2);
             AddBall(entity, localPos, localVel, radius, mass);
-            return entity;
+            if (EngineProvider<IDebugUI>.Exists)
+            {
+                EngineProvider<IDebugUI>.Get().OnCreateBall(entity);
+            }
         }
 
         public void OnRotateToEnd(Entity entity) => PhyFlipper.OnRotateToEnd(entity);
@@ -274,7 +277,8 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
 
             public void Convert(Entity entity, EntityManager dstManager, GameObjectConversionSystem conversionSystem)
             {
-                if (EngineProvider<IDebugUI>.Exists) {
+                if (EngineProvider<IDebugUI>.Exists)
+                {
                     EngineProvider<IDebugUI>.Get().OnRegisterFlipper(entity, Name);
                 }
 

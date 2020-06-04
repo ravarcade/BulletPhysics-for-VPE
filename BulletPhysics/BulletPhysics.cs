@@ -36,10 +36,10 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
 			_component.PrepareTable();
 		}
 
-		public Entity BallCreate(Mesh mesh, Material material, in float3 worldPos, in float3 localPos, in float3 localVel,
+		public void BallCreate(Mesh mesh, Material material, in float3 worldPos, in float3 localPos, in float3 localVel,
 			in float scale, in float mass, in float radius)
 		{
-			return _component.BallCreate(mesh, material, in worldPos, localPos, in localVel, in scale, in mass, in radius);
+			_component.BallCreate(mesh, material, in worldPos, localPos, in localVel, in scale, in mass, in radius);
 		}
 
 		public void BallManualRoll(in Entity ballEntity, in float3 targetWorldPosition)
