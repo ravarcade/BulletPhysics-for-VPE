@@ -1,4 +1,3 @@
-using BulletSharp;
 using BulletSharp.Math;
 using Unity.Entities;
 using Unity.Mathematics;
@@ -277,10 +276,9 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
 
             public void Convert(Entity entity, EntityManager dstManager, GameObjectConversionSystem conversionSystem)
             {
-                if (EngineProvider<IDebugUI>.Exists)
-                {
-                    EngineProvider<IDebugUI>.Get().OnRegisterFlipper(entity, Name);
-                }
+                // Flipper is alredy registered in DebugUI, see: VisualPinball.Unity.Game.Player.RegisterFlipper
+                // if (EngineProvider<IDebugUI>.Exists)
+                //    EngineProvider<IDebugUI>.Get().OnRegisterFlipper(entity, Name);
 
                 PhyFlipper.OnRegiesterFlipper(entity, phyBody);
                 dstManager.AddComponentData(entity, new BulletPhysicsTransformData

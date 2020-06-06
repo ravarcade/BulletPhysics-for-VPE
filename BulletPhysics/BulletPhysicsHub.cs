@@ -149,7 +149,7 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
 
         protected void UpdatePhysics(float deltaTime)
         {
-            _RemoveVPXPhysics();
+            _RemoveVPXPhysicSystems();
 
             currentTime += (double)deltaTime;
             var td = currentTime - simulationTime;
@@ -170,7 +170,7 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
                     --steps;
 
                     if (EngineProvider<IDebugUI>.Exists) {
-                        EngineProvider<IDebugUI>.Get().OnPhysicsUpdate(1, (float)stopwatch.Elapsed.TotalMilliseconds);
+                        EngineProvider<IDebugUI>.Get().OnPhysicsUpdate(simulationTime, 1, (float)stopwatch.Elapsed.TotalMilliseconds);
                     }
                 }
             }
@@ -241,7 +241,8 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
         }
 
         bool _vpxPhysicsRemoved = false;
-        private void _RemoveVPXPhysics()
+
+        private void _RemoveVPXPhysicSystems()
         {
             if (!_vpxPhysicsRemoved)
             {
