@@ -36,14 +36,11 @@ Adds Bullet Physics.
 
 ![](.Doc/Install-BulletPhysics.gif)
 
-4. Add GameObject and add to it `Bullet Physics Component`.
+4. Select **`Bullet Physics`** as `Physics Engine`.
 
-![](.Doc/Add-BulletPhysics-Component.gif)
+![](.Doc/Enable-BulletPhysics.gif)
 
-5. You can enable / disable Bullet Physics with one click
 
-![](.Doc/OnOffSwitch-BulletPhysics.gif)
-
-## FAQ / Troubleshoting
-1. If VPE is still in without support of IPhysicsEngine, install VPE from my repo:
-`https://github.com/ravarcade/VisualPinball.Engine/zipball/DebugUI`
+# Credits
+- [Bullet Physics Engine](https://github.com/bulletphysics/bullet3)
+- [BulletSharp](https://github.com/AndresTraks/BulletSharp) maintained by [AndresTraks](https://github.com/AndresTraks)
