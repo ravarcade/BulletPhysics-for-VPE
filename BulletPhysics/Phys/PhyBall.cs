@@ -1,14 +1,31 @@
+using System.Collections.Generic;
+using Unity.Entities;
 using BulletSharp;
-using BulletSharp.Math;
-using Unity.Entities.UniversalDelegates;
 
 namespace VisualPinball.Engine.Unity.BulletPhysics
 {
     internal class PhyBall : PhyBody
     {
-        public PhyBall(float radius, float mass) : base(PhyType.Ball)
+        private readonly static Dictionary<Entity, PhyBall> _balls = new Dictionary<Entity, PhyBall>();
+
+        public PhyBall(Entity entity, float radius, float mass) : base(PhyType.Ball)
         {
             SetupRigidBody(mass, new SphereShape(radius));
+            SetProperties(
+                mass,
+                0.3f,
+                0.012f);
+            _balls[entity] = this;
+            base.name = "Ball" + Count;
+            base.entity = entity;
+        }
+
+
+        public static int Count { get => _balls.Count; }
+
+        public static PhyBall Get(Entity entity)
+        {
+            return _balls.ContainsKey(entity) ? _balls[entity] : null;
         }
     }
 }

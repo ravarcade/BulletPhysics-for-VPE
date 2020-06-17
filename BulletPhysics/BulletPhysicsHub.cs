@@ -12,6 +12,9 @@ using VisualPinball.Unity.Physics.DebugUI;
 using Vector3 = BulletSharp.Math.Vector3;
 using Matrix = BulletSharp.Math.Matrix;
 using ECS_World = Unity.Entities.World;
+using UnityEngine.UIElements;
+using System.ComponentModel;
+using Unity.Transforms;
 
 namespace VisualPinball.Engine.Unity.BulletPhysics
 {
@@ -56,6 +59,7 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
 			(short)PhyType.Everything,      // ball :-collide-with-: everything
 			1<<(short)PhyType.Ball,         // static objects :-collide-with-: ball
 			1<<(short)PhyType.Ball,         // flipper :-collide-with-: ball
+            1<<(short)PhyType.Ball,         // gate :-collide-with-: ball
 		};
 
         // ========================================================================================
@@ -176,7 +180,7 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
             }
         }
 
-        protected Matrix ExtractModelMatrix(GameObject go)
+        protected Matrix GetTransformMatrix(GameObject go)
         {
             UnityEngine.Vector3 pos = go.transform.localPosition;
             Quaternion rot = go.transform.localRotation;
@@ -192,48 +196,102 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
             World.AddCollisionObject(phyBody.body, (CollisionFilterGroups)(1 << phyBody.phyType), (CollisionFilterGroups)_collisionsMap[phyBody.phyType]);
         }
 
-        protected void Add(PhyBody phyBody, Entity entity, Matrix m)
+        protected void Add(PhyBody phyBody, Matrix m)
         {
             _AddPhyBody(phyBody);
-
-            if (entity != Entity.Null)
-            {
-                entityManager.AddComponent<BulletPhysicsTransformData>(entity);
-                entityManager.AddComponentData(entity, new BulletPhysicsTransformData
-                {
-                    motionStateView = phyBody.body.MotionState.ToView(),
-#if UNITY_EDITOR
-                    rigidBodyView = phyBody.body.ToView(),
-#endif
-                });
-            }
+            AddBulletPhysicsTransform(phyBody);
             phyBody.SetWorldTransform(m);
 
             if (phyBody.Constraint != null)
                 World.AddConstraint(phyBody.Constraint);
         }
 
-        protected void Add(PhyBody phyBody, Entity entity, UnityEngine.Vector3 pos, Quaternion rot)
+        protected void Add(PhyBody phyBody, UnityEngine.Vector3 pos, Quaternion rot)
         {
-            Add(phyBody, entity, Matrix4x4.TRS(pos, rot, UnityEngine.Vector3.one).ToBullet());
+            Add(phyBody, Matrix4x4.TRS(pos, rot, UnityEngine.Vector3.one).ToBullet());
         }
 
-        protected void Add(PhyBody phyBody, Entity entity, UnityEngine.Vector3 pos)
+        protected void Add(PhyBody phyBody,UnityEngine.Vector3 pos)
         {
-            Add(phyBody, entity, pos, Quaternion.identity);
+            Add(phyBody, pos, Quaternion.identity);
         }
 
-        protected void Add(PhyBody phyBody, Matrix m)
+        protected void AddBulletPhysicsTransform(PhyBody phyBody)
         {
-            Add(phyBody, Entity.Null, m);
+            if (phyBody.entity != Entity.Null)
+            {
+                entityManager.AddComponent<BulletPhysicsTransformData>(phyBody.entity);
+                entityManager.AddComponentData(phyBody.entity, new BulletPhysicsTransformData
+                {
+                    motionStateView = phyBody.body.MotionState.ToView(),
+#if UNITY_EDITOR
+                    rigidBodyView = phyBody.body.ToView(),
+#endif
+                });
+#if UNITY_EDITOR
+                entityManager.SetName(phyBody.entity, phyBody.name);
+#endif
+            }
         }
 
-        protected void Add(PhyBody phyBody, GameObject go)
+        protected void DeferredRegistration(PhyBody phyBody, GameObject go)
         {
-            Add(phyBody, ExtractModelMatrix(go));
+            var drb = go.AddComponent<DeferredRegistrationBehaviour>();
+            drb.motionStateView = phyBody.body.MotionState.ToView();
+            drb.phyBody = phyBody;
+#if UNITY_EDITOR
+            drb.rigidBodyView = phyBody.body.ToView();
+#endif
+            _HideGameObject(go);
+        }
+
+        /// <summary>
+        /// Deferred Registration of objects, like flippers or gates.
+        /// Add also BulletPhysicsTransformData component to Entity
+        /// </summary>
+        internal class DeferredRegistrationBehaviour : MonoBehaviour, IConvertGameObjectToEntity
+        {
+
+            public MotionStateNativeView motionStateView;
+            public PhyBody phyBody;
+#if UNITY_EDITOR
+            public RigidBodyNativeView rigidBodyView;
+#endif
+            public void Convert(Entity entity, EntityManager dstManager, GameObjectConversionSystem conversionSystem)
+            {
+                phyBody.Register(entity);
+                dstManager.RemoveComponent<Parent>(entity); // yup... no parent, gates required this
+                dstManager.AddComponentData(entity, new BulletPhysicsTransformData
+                {
+                    motionStateView = motionStateView,
+#if UNITY_EDITOR
+                    rigidBodyView = rigidBodyView,
+#endif
+                });
+#if UNITY_EDITOR
+                dstManager.SetName(phyBody.entity, phyBody.name);
+#endif
+            }
         }
 
         // ==========================================================
+
+
+        protected void _RemoveBehavior<T>(GameObject go) where T : MonoBehaviour
+        {
+            var co = go.GetComponent<T>();
+            Destroy(co);
+        }
+
+        protected void _HideGameObject(GameObject go)
+        {
+            var cte = go.GetComponent<ConvertToEntity>();
+            if (cte == null)
+                cte = go.AddComponent<ConvertToEntity>();
+
+            cte.ConversionMode = ConvertToEntity.Mode.ConvertAndDestroy;
+        }
+
         private void _UpdateGameObjects()
         {
             var bpc = (BulletPhysicsComponent)this;

@@ -1,12 +1,7 @@
-using System;
-using UnityEngine;
-using VisualPinball.Engine.Unity.BulletPhysics;
-using VisualPinball.Unity.Game;
 using BulletSharp;
 using BulletSharp.Math;
+using Unity.Entities;
 using Vector3 = BulletSharp.Math.Vector3;
-using System.Collections.Generic;
-using JetBrains.Annotations;
 
 namespace VisualPinball.Engine.Unity.BulletPhysics
 {
@@ -16,6 +11,7 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
         Ball = 1,
         Static = 2,
         Flipper = 3,
+        Gate = 4,
         Everything = 0x7fff
     };
 
@@ -23,8 +19,12 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
     {
         private PhyType _phyType;
         private CollisionObject _collisionObject;
+        private string _name = "";
+        private Entity _entity = Entity.Null;
 
         public object userObject { get; set; }
+        public string name { get => _name; protected set { _name = value; } }
+        public Entity entity { get => _entity; protected set { _entity = value; } }
 
         public PhyBody(PhyType pType = PhyType.Static)
         {
@@ -46,7 +46,10 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
         public short phyType { get { return (short)_phyType; } }
 
         public RigidBody body { get { return (RigidBody)_collisionObject; } }
+
         public virtual TypedConstraint Constraint { get { return null; } }
+
+        public virtual void Register(Entity entity) { }
 
         public void SetProperties(float mass, float friction, float restitution)
         {

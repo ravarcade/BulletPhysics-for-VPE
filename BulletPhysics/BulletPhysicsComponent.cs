@@ -6,7 +6,9 @@ using VisualPinball.Engine.Common;
 using VisualPinball.Unity.Physics.DebugUI;
 using VisualPinball.Unity.VPT.Ball;
 using VisualPinball.Unity.VPT.Flipper;
+using VisualPinball.Unity.VPT.Gate;
 using VisualPinball.Unity.VPT.Primitive;
+using VisualPinball.Unity.VPT.Rubber;
 using VisualPinball.Unity.VPT.Surface;
 using VisualPinball.Unity.VPT.Table;
 using Vec3 = BulletSharp.Math.Vector3;
@@ -98,6 +100,9 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
                 foreach (var flipper in table.gameObject.GetComponentsInChildren<FlipperBehavior>(true))
                     AddFlipper(flipper);
 
+                foreach (var gate in table.gameObject.GetComponentsInChildren<GateBehavior>(true))
+                    AddGate(gate);
+
                 foreach (var primitive in table.gameObject.GetComponentsInChildren<PrimitiveBehavior>(true))
                     if (primitive.data.IsCollidable)
                         AddStaticMesh(primitive.gameObject, 0, primitive.data.Friction, primitive.data.Elasticity);
@@ -106,11 +111,14 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
                     if (surface.data.IsCollidable)
                         AddStaticMesh(surface.gameObject, 0, surface.data.Friction, surface.data.Elasticity);
 
+                foreach (var surface in table.gameObject.GetComponentsInChildren<RubberBehavior>(true))
+                    if (surface.data.IsCollidable)
+                        AddStaticMesh(surface.gameObject, 0, surface.data.Friction, surface.data.Elasticity);
+
             }
         }
 
         // ==================================================================== IPhysicsEngine ===
-
 
         public void BallCreate(Mesh mesh, Material material, in float3 worldPos, in float3 localPos, in float3 localVel,
             in float scale, in float mass, in float radius)
@@ -129,25 +137,26 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
 
         public void ManualBallRoller(in Entity entity, in float3 targetPosition)
         {
-            // right now only last ball is affected
-            if (_ballBodyForManualBallRoller != null)
+            var ball = PhyBall.Get(entity);
+            if (ball != null)
             {
+                var body = ball.body;
                 Vec3 target = _worldToLocal.MultiplyPoint(targetPosition).ToBullet();
                 Matrix m;
-                _ballBodyForManualBallRoller.GetWorldTransform(out m);
+                body.GetWorldTransform(out m);
                 Vec3 ballPos = ((Vector3)BulletPhysicsExt.ExtractTranslationFromMatrix(ref m)).ToBullet();
                 target.Z = ballPos.Z;
                 var dir = (target - ballPos);
                 dir.Normalize();
                 float dist = (target - ballPos).Length * 0.05f;
-                _ballBodyForManualBallRoller.AngularVelocity = Vec3.Zero;
-                _ballBodyForManualBallRoller.LinearVelocity = Vec3.Zero;
+                body.AngularVelocity = Vec3.Zero;
+                body.LinearVelocity = Vec3.Zero;
                 if (dist > 20)
                     dist = 20;
                 if (dist > 0.1f)
                 {
                     dist = dist + 1.0f;
-                    _ballBodyForManualBallRoller.ApplyCentralImpulse(dist * dist * dir * (float)10);
+                    body.ApplyCentralImpulse(dist * dist * dir * (float)10);
                 }
             }
         }
@@ -195,7 +204,7 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
         // ==================================================================== === ===
 
         PhyPlayfield _playfield = null;
-        BulletSharp.RigidBody _ballBodyForManualBallRoller = null;
+        //BulletSharp.RigidBody _ballBodyForManualBallRoller = null;
 
         // ==================================================================== Functions used to add GameObjects to physics engine ===
 
@@ -226,70 +235,40 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
                 elasticity * 100.0f);
 
             Add(body, Matrix.Identity);
+            _HideGameObject(go);
         }
 
         void AddFlipper(FlipperBehavior flipper)
         {
             var phyBody = new PhyFlipper(flipper);
-            phyBody.SetProperties(
-                phyBody.Mass,
-                flipper.data.Friction,
-                flipper.data.Elasticity * 100.0f);
+            Add(phyBody, GetTransformMatrix(flipper.gameObject));
+            DeferredRegistration(phyBody, flipper.gameObject);
+        }
 
-            var phyFlipperBehaviour = flipper.gameObject.AddComponent<PhyFlipperBehaviour>();
-            phyFlipperBehaviour.motionStateView = phyBody.body.MotionState.ToView();
-#if UNITY_EDITOR
-            phyFlipperBehaviour.rigidBodyView = phyBody.body.ToView();
-#endif
-            phyFlipperBehaviour.Name = flipper.gameObject.name;
-            phyFlipperBehaviour.phyBody = phyBody;
+        void AddGate(GateBehavior gate)
+        {
+            var wires = gate.GetComponentsInChildren<GateWireBehavior>(true);
+            var wire = wires?[0];
+            if (wire != null && wires.Length == 1)
+            {
+                // detach wire from gate
+                
+                //wire.transform.parent = gate.transform.parent; // now both have same parent
 
-            Add(phyBody, flipper.gameObject);
+                var phyBody = new PhyGate(gate, wire);
+                Add(phyBody, GetTransformMatrix(gate.gameObject));
+                DeferredRegistration(phyBody, gate.gameObject);
+                _RemoveBehavior<GateBehavior>(gate.gameObject);
+                _RemoveBehavior<GateWireBehavior>(wire.gameObject);
+            }
         }
 
         void AddBall(Entity entity, float3 position, float3 velocity, float radius, float mass)
         {
-            var phyBody = new PhyBall(radius, mass);
-            phyBody.SetProperties(
-                mass,
-                0.3f,
-                0.012f);
-            Add(phyBody, entity, position);
-
-            // last added ball is for manual ball roller
-            _ballBodyForManualBallRoller = phyBody.body;
+            var phyBody = new PhyBall(entity, radius, mass);
+            Add(phyBody, position);
         }
 
-        // ==================================================================== === ===
-
-        /// <summary>
-        /// Register flipper and add BulletPhysicsTransformData component to Entity
-        /// </summary>
-        internal class PhyFlipperBehaviour : MonoBehaviour, IConvertGameObjectToEntity
-        {
-            public string Name;
-            public MotionStateNativeView motionStateView;
-#if UNITY_EDITOR
-            public RigidBodyNativeView rigidBodyView;
-#endif
-            public PhyFlipper phyBody;
-
-            public void Convert(Entity entity, EntityManager dstManager, GameObjectConversionSystem conversionSystem)
-            {
-                // Flipper is alredy registered in DebugUI, see: VisualPinball.Unity.Game.Player.RegisterFlipper
-                // if (EngineProvider<IDebugUI>.Exists)
-                //    EngineProvider<IDebugUI>.Get().OnRegisterFlipper(entity, Name);
-
-                PhyFlipper.OnRegiesterFlipper(entity, phyBody);
-                dstManager.AddComponentData(entity, new BulletPhysicsTransformData
-                {
-                    motionStateView = motionStateView,
-#if UNITY_EDITOR
-                    rigidBodyView = rigidBodyView,
-#endif
-                });
-            }
-        }
     }
 }
 

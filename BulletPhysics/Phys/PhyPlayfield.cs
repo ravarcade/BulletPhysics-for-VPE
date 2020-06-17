@@ -1,3 +1,4 @@
+using Unity.Entities;
 using BulletSharp;
 
 namespace VisualPinball.Engine.Unity.BulletPhysics
@@ -9,6 +10,8 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
         public PhyPlayfield(float w, float h) : base(PhyType.Playfield)
         {
             SetupRigidBody(0, new BoxShape(w, h, playfieldTickness));
+            base.name = "[Playfield]";
+            base.entity = Entity.Null;
         }
     }
 }

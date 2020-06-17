@@ -14,6 +14,21 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
 {
     public class PhyFlipper : PhyBody
     {
+
+        public float Mass;
+        public int SolenoidState = 0;
+        public int RotationDirection = 1;  /// left flipper =-1, right flipper =+1
+
+        TypedConstraint _constraint = null;
+        float _height;
+        float _startAngle;
+        float _endAngle;
+
+        float _usedFlipperMass = 1.0f;
+        float _prevFlipperMassMultiplierLog = float.MaxValue;
+
+        readonly static Dictionary<Entity, PhyFlipper> _flippers = new Dictionary<Entity, PhyFlipper>();
+
         public PhyFlipper(FlipperBehavior flipper) : base(PhyType.Flipper)
         {
             Mass = flipper.data.Mass * 3.0f;
@@ -23,6 +38,23 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
             _endAngle = flipper.data.EndAngle * Mathf.PI / 180.0f;
 
             SetupRigidBody(flipper.data.Mass, _AddFlipperCylinders(flipper));
+            SetProperties(
+                Mass,
+                flipper.data.Friction,
+                flipper.data.Elasticity * 100.0f);
+
+            base.name = flipper.name;
+            base.entity = Entity.Null;
+        }
+
+        public override void Register(Entity entity)
+        {
+            // Flipper is alredy registered in DebugUI, see: VisualPinball.Unity.Game.Player.RegisterFlipper
+            // if (EngineProvider<IDebugUI>.Exists)
+            //    EngineProvider<IDebugUI>.Get().OnRegisterFlipper(entity, Name);
+
+            SolenoidState = -1; // down
+            _flippers[entity] = this;
         }
 
         // Adding hinge should be done after RigidBody is added to world
@@ -159,27 +191,8 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
                 body.SetMassProps(_usedFlipperMass, inertia);
             }
         }
-
-
-        // ========================================================================== Data ===
-
-        TypedConstraint _constraint = null;
-
-        public float Mass;
-        public int SolenoidState = 0;
-        public int RotationDirection = 1;  /// left flipper =-1, right flipper =+1
-
-        float _height;
-        float _startAngle;
-        float _endAngle;
-
-        // flipper params
-        private float _usedFlipperMass = 1.0f;
-        private float _prevFlipperMassMultiplierLog = float.MaxValue;
-
+ 
         // ========================================================================== Static Methods & Data ===
-
-        private readonly static Dictionary<Entity, PhyFlipper> _flippers = new Dictionary<Entity, PhyFlipper>();
 
         public static void OnRotateToEnd(Entity entity) { _flippers[entity].SolenoidState = 1; }
         public static void OnRotateToStart(Entity entity) { _flippers[entity].SolenoidState = -1; }
@@ -198,11 +211,11 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
             return states;
         }
 
-        public static void OnRegiesterFlipper(Entity entity, PhyFlipper phyBody)
-        {
-            phyBody.SolenoidState = -1; // down
-            _flippers[entity] = phyBody;
-        }
+        //public static void OnRegiesterFlipper(Entity entity, PhyFlipper phyBody)
+        //{
+        //    phyBody.SolenoidState = -1; // down
+        //    _flippers[entity] = phyBody;
+        //}
 
         public static void Update(ref BulletPhysicsComponent bpc)
         {

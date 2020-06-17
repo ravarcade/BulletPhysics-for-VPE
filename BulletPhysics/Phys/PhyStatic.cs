@@ -1,4 +1,5 @@
 using UnityEngine;
+using Unity.Entities;
 using BulletSharp;
 
 namespace VisualPinball.Engine.Unity.BulletPhysics
@@ -13,6 +14,8 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
             AddMesh(ref btMesh, mesh);
 
             SetupRigidBody(mass, new BvhTriangleMeshShape(btMesh, true));
+            base.name = go.name;
+            base.entity = Entity.Null;
         }
 
         UnityEngine.Mesh GetCombinedMesh(GameObject go)
