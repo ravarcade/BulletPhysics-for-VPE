@@ -15,7 +15,13 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
     public struct MotionStateNativeView
     {
         private IntPtr _native;
-        public MotionStateNativeView(MotionState motionState) { _native = motionState._native; }
+        private Matrix _localOffset;
+
+        public MotionStateNativeView(MotionState motionState, in Vector3 offset) 
+        { 
+            _native = motionState._native; 
+            _localOffset = Matrix.Translation(offset); 
+        }
 
 
         public Matrix WorldTransform
@@ -24,6 +30,7 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
             {
                 Matrix m;
                 btMotionState_getWorldTransform(_native, out m);
+                m = _localOffset * m;
                 return m;
             }
         }

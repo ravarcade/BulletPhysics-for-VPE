@@ -8,7 +8,7 @@ internal class BulletPhysicsTransformSystem : JobComponentSystem
 {
     protected override JobHandle OnUpdate(JobHandle inputDeps)
     {
-        var ltw = BulletPhysicsHub.LocalToWorld;
+        //var ltw = BulletPhysicsHub.LocalToWorld;
 
         /**
 		 * Note:
@@ -22,6 +22,7 @@ internal class BulletPhysicsTransformSystem : JobComponentSystem
 #endif
         {
             var ms = transformData.motionStateView.ToBtTransform();
+            var ltw = transformData.localToWorld;
             rototation.Value = ltw.rotation * ms.rot;
             translation.Value = ltw.MultiplyPoint(ms.pos);
 

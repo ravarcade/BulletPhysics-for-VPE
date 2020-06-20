@@ -1,6 +1,7 @@
 using BulletSharp;
 using BulletSharp.Math;
 using Unity.Entities;
+using UnityEngine;
 using Vector3 = BulletSharp.Math.Vector3;
 
 namespace VisualPinball.Engine.Unity.BulletPhysics
@@ -15,20 +16,36 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
         Everything = 0x7fff
     };
 
+    /// <summary>
+    /// Base class for all Phy[something] objects.
+    /// </summary>
     public class PhyBody
     {
         private PhyType _phyType;
         private CollisionObject _collisionObject;
         private string _name = "";
         private Entity _entity = Entity.Null;
+        private Vector3 _offset = Vector3.Zero;
+        private Matrix _matrix = Matrix.Identity;
+        private Matrix4x4 _localToWorld = Matrix4x4.identity;
+        private bool _isLocalToWorldSet = false;
 
         public object userObject { get; set; }
         public string name { get => _name; protected set { _name = value; } }
         public Entity entity { get => _entity; protected set { _entity = value; } }
+        public Vector3 offset { get => _offset; protected set { _offset = value; } }
+        
+        public bool isLocalToWorldSet { get => _isLocalToWorldSet; }
+        public Matrix4x4 localToWorld { get => _localToWorld; protected set { _localToWorld = value; _isLocalToWorldSet = true; } }
+        public Matrix matrix { get => _matrix; protected set { _matrix = value; } }
 
-        public PhyBody(PhyType pType = PhyType.Static)
+        /// <summary>
+        /// Base class for all Phy[something] objects.
+        /// </summary>
+        /// <param name="phyType">Type of object in bullet physics.</param>
+        protected PhyBody(PhyType phyType = PhyType.Static)
         {
-            _phyType = pType;
+            _phyType = phyType;
         }
 
         public void SetupRigidBody(float mass, CollisionShape shape, float margin = 0.04f)
@@ -49,7 +66,7 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
 
         public virtual TypedConstraint Constraint { get { return null; } }
 
-        public virtual void Register(Entity entity) { }
+        public virtual void Register(Entity entity) { _entity = entity; }
 
         public void SetProperties(float mass, float friction, float restitution)
         {
@@ -75,6 +92,11 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
         {
             body.MotionState.SetWorldTransform(ref m);
             body.WorldTransform = m;
+        }
+
+        public MotionStateNativeView ToView()
+        {
+            return body.MotionState.ToView(_offset);
         }
     }
 }

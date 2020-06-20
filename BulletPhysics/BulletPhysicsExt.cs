@@ -1,8 +1,9 @@
-using UnityEngine;
-using Unity.Mathematics;
-using quaternion = Unity.Mathematics.quaternion;
-using BulletSharp.Math;
 using BulletSharp;
+using BulletSharp.Math;
+using Unity.Mathematics;
+using UnityEngine;
+using quaternion = Unity.Mathematics.quaternion;
+using Vector3 = BulletSharp.Math.Vector3;
 
 namespace VisualPinball.Engine.Unity.BulletPhysics
 {
@@ -33,7 +34,7 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
     public static class BulletPhysicsExt
     {
         public static btTransform ToBtTransform(this MotionStateNativeView motionStateView) { return new btTransform(motionStateView); }
-        public static MotionStateNativeView ToView(this MotionState motionState) { return new MotionStateNativeView(motionState); }
+        public static MotionStateNativeView ToView(this MotionState motionState, in Vector3 offset) { return new MotionStateNativeView(motionState, offset); }        
         public static RigidBodyNativeView ToView(this RigidBody rigidBody) { return new RigidBodyNativeView(rigidBody); }
 
         public static BulletSharp.Math.Quaternion ToBullet(this UnityEngine.Quaternion v)

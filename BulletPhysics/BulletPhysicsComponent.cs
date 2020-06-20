@@ -210,38 +210,27 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
 
         void AddPlayfield(TableBehavior table)
         {
-            _playfield = new PhyPlayfield(table.Table.Width * 0.5f, table.Table.Height * 0.5f);
-
-            // ToDo: get correct playfield params
-            _playfield.SetProperties(
-                0,
-                table.Table.Data.Friction,
-                table.Table.Data.Elasticity * 100.0f);
-
-            var tr = _worldToLocal.MultiplyPoint(UnityEngine.Vector3.zero);
-            Add(_playfield, Matrix.Translation(tr.x, tr.y, tr.z));
+            _playfield = new PhyPlayfield(table);
+            Add(_playfield);
         }
 
         void AddStaticMesh(GameObject go, float mass, float friction, float elasticity)
         {
+            // no mesh, nothing for physics engine
             var meshes = go.GetComponentsInChildren<MeshFilter>(true);
             if (meshes.Length == 0)
                 return;
 
-            var body = new PhyStatic(go, mass);
-            body.SetProperties(
-                mass,
-                friction,
-                elasticity * 100.0f);
-
-            Add(body, Matrix.Identity);
+            var phyBody = new PhyStatic(go, mass, friction, elasticity);
+            
+            Add(phyBody);
             _HideGameObject(go);
         }
 
         void AddFlipper(FlipperBehavior flipper)
         {
             var phyBody = new PhyFlipper(flipper);
-            Add(phyBody, GetTransformMatrix(flipper.gameObject));
+            Add(phyBody);
             DeferredRegistration(phyBody, flipper.gameObject);
         }
 
@@ -250,14 +239,10 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
             var wires = gate.GetComponentsInChildren<GateWireBehavior>(true);
             var wire = wires?[0];
             if (wire != null && wires.Length == 1)
-            {
-                // detach wire from gate
-                
-                //wire.transform.parent = gate.transform.parent; // now both have same parent
-
+            {                
                 var phyBody = new PhyGate(gate, wire);
-                Add(phyBody, GetTransformMatrix(gate.gameObject));
-                DeferredRegistration(phyBody, gate.gameObject);
+                Add(phyBody);
+                DeferredRegistration(phyBody, wire.gameObject);
                 _RemoveBehavior<GateBehavior>(gate.gameObject);
                 _RemoveBehavior<GateWireBehavior>(wire.gameObject);
             }

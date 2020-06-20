@@ -15,6 +15,7 @@ using ECS_World = Unity.Entities.World;
 using UnityEngine.UIElements;
 using System.ComponentModel;
 using Unity.Transforms;
+using System.Data.Common;
 
 namespace VisualPinball.Engine.Unity.BulletPhysics
 {
@@ -178,6 +179,7 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
                     }
                 }
             }
+            PhyGate.dbg(entityManager);
         }
 
         protected Matrix GetTransformMatrix(GameObject go)
@@ -196,10 +198,21 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
             World.AddCollisionObject(phyBody.body, (CollisionFilterGroups)(1 << phyBody.phyType), (CollisionFilterGroups)_collisionsMap[phyBody.phyType]);
         }
 
+        protected void Add(PhyBody phyBody)
+        {
+            _AddPhyBody(phyBody);
+            AddBulletPhysicsTransform(phyBody);
+            phyBody.SetWorldTransform(phyBody.matrix);
+
+            if (phyBody.Constraint != null)
+                World.AddConstraint(phyBody.Constraint);
+        }
+
         protected void Add(PhyBody phyBody, Matrix m)
         {
             _AddPhyBody(phyBody);
             AddBulletPhysicsTransform(phyBody);
+            m = m * Matrix.Translation(-phyBody.offset);
             phyBody.SetWorldTransform(m);
 
             if (phyBody.Constraint != null)
@@ -223,7 +236,8 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
                 entityManager.AddComponent<BulletPhysicsTransformData>(phyBody.entity);
                 entityManager.AddComponentData(phyBody.entity, new BulletPhysicsTransformData
                 {
-                    motionStateView = phyBody.body.MotionState.ToView(),
+                    motionStateView = phyBody.ToView(),
+                    localToWorld = LocalToWorld,
 #if UNITY_EDITOR
                     rigidBodyView = phyBody.body.ToView(),
 #endif
@@ -237,7 +251,10 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
         protected void DeferredRegistration(PhyBody phyBody, GameObject go)
         {
             var drb = go.AddComponent<DeferredRegistrationBehaviour>();
-            drb.motionStateView = phyBody.body.MotionState.ToView();
+            drb.motionStateView = phyBody.ToView();
+            drb.localToWorld = phyBody.isLocalToWorldSet ?
+                phyBody.localToWorld :
+                LocalToWorld;
             drb.phyBody = phyBody;
 #if UNITY_EDITOR
             drb.rigidBodyView = phyBody.body.ToView();
@@ -253,6 +270,7 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
         {
 
             public MotionStateNativeView motionStateView;
+            public Matrix4x4 localToWorld;
             public PhyBody phyBody;
 #if UNITY_EDITOR
             public RigidBodyNativeView rigidBodyView;
@@ -260,10 +278,11 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
             public void Convert(Entity entity, EntityManager dstManager, GameObjectConversionSystem conversionSystem)
             {
                 phyBody.Register(entity);
-                dstManager.RemoveComponent<Parent>(entity); // yup... no parent, gates required this
+                //dstManager.RemoveComponent<Parent>(entity); // yup... no parent, gates required this
                 dstManager.AddComponentData(entity, new BulletPhysicsTransformData
                 {
                     motionStateView = motionStateView,
+                    localToWorld = localToWorld,
 #if UNITY_EDITOR
                     rigidBodyView = rigidBodyView,
 #endif
@@ -275,7 +294,6 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
         }
 
         // ==========================================================
-
 
         protected void _RemoveBehavior<T>(GameObject go) where T : MonoBehaviour
         {

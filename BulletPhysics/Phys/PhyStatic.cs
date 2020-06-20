@@ -1,12 +1,13 @@
 using UnityEngine;
 using Unity.Entities;
 using BulletSharp;
+using BulletSharp.Math;
 
 namespace VisualPinball.Engine.Unity.BulletPhysics
 {
     internal class PhyStatic : PhyBody
     {
-        public PhyStatic(GameObject go, float mass) : base(PhyType.Static)
+        public PhyStatic(GameObject go, float mass, float friction, float elasticity) : base(PhyType.Static)
         {
             TriangleMesh btMesh = new TriangleMesh();
 
@@ -14,8 +15,13 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
             AddMesh(ref btMesh, mesh);
 
             SetupRigidBody(mass, new BvhTriangleMeshShape(btMesh, true));
+
+            SetProperties(
+                mass,
+                friction,
+                elasticity * 100.0f);
+
             base.name = go.name;
-            base.entity = Entity.Null;
         }
 
         UnityEngine.Mesh GetCombinedMesh(GameObject go)

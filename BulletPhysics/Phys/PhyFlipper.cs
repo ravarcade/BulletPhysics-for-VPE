@@ -38,10 +38,18 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
             _endAngle = flipper.data.EndAngle * Mathf.PI / 180.0f;
 
             SetupRigidBody(flipper.data.Mass, _AddFlipperCylinders(flipper));
+            
             SetProperties(
                 Mass,
                 flipper.data.Friction,
                 flipper.data.Elasticity * 100.0f);
+
+
+            base.matrix = Matrix4x4.TRS(
+                flipper.gameObject.transform.localPosition,
+                flipper.gameObject.transform.localRotation,
+                UnityEngine.Vector3.one
+                ).ToBullet();
 
             base.name = flipper.name;
             base.entity = Entity.Null;
@@ -55,6 +63,7 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
 
             SolenoidState = -1; // down
             _flippers[entity] = this;
+            base.Register(entity);
         }
 
         // Adding hinge should be done after RigidBody is added to world

@@ -1,4 +1,4 @@
-using System;
+using UnityEngine;
 using Unity.Entities;
 using Unity.Mathematics;
 using VisualPinball.Engine.Unity.BulletPhysics;
@@ -7,6 +7,7 @@ using VisualPinball.Unity.Extensions;
 public struct BulletPhysicsTransformData : IComponentData
 {
     public MotionStateNativeView motionStateView;
+	public Matrix4x4 localToWorld;
 
 #if UNITY_EDITOR
 	// all below is used for debug
@@ -18,6 +19,8 @@ public struct BulletPhysicsTransformData : IComponentData
 	public float rollingFriction;
 	public float3 torq;
 	public float3 velocity;
+	public float linearDamping;
+	public float angularDamping;
 
 	public void UpdateDebug()
 	{
@@ -30,6 +33,8 @@ public struct BulletPhysicsTransformData : IComponentData
 		rollingFriction = rigidBodyView.RollingFriction;
 		torq = rigidBodyView.AngularVelocity.ToUnity();
 		velocity = rigidBodyView.LinearVelocity.ToUnity();
+		linearDamping = rigidBodyView.LinearDamping;
+		angularDamping = rigidBodyView.AngularDamping;
 	}
 #endif
 }
