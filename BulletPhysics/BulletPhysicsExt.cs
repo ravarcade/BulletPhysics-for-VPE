@@ -1,5 +1,6 @@
 using BulletSharp;
 using BulletSharp.Math;
+using FluentAssertions.Extensions;
 using Unity.Mathematics;
 using UnityEngine;
 using quaternion = Unity.Mathematics.quaternion;
@@ -135,5 +136,8 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
 
             return quaternion.LookRotation(forward, upwards);
         }
+
+        public static float ToRad(this float v) => v * math.PI / 180.0f;
+        public static float ToDeg(this float v) => v * 180.0f / math.PI;
     }
 }

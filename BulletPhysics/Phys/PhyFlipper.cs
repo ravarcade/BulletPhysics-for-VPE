@@ -8,7 +8,8 @@ using BulletSharp;
 using VisualPinball.Unity.Physics.DebugUI;
 using Vector3 = BulletSharp.Math.Vector3;
 using Matrix = BulletSharp.Math.Matrix;
-
+using VisualPinball.Engine.Common;
+using FluentAssertions.Extensions;
 
 namespace VisualPinball.Engine.Unity.BulletPhysics
 {
@@ -64,6 +65,8 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
             SolenoidState = -1; // down
             _flippers[entity] = this;
             base.Register(entity);
+
+            _AddDebugProperties();
         }
 
         // Adding hinge should be done after RigidBody is added to world
@@ -220,18 +223,55 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
             return states;
         }
 
-        //public static void OnRegiesterFlipper(Entity entity, PhyFlipper phyBody)
-        //{
-        //    phyBody.SolenoidState = -1; // down
-        //    _flippers[entity] = phyBody;
-        //}
-
         public static void Update(ref BulletPhysicsComponent bpc)
         {
             foreach (var entry in _flippers)
             {
-                entry.Value._FlipperUpdate(ref bpc);
+                PhyFlipper phyFlipper = entry.Value;
+                phyFlipper._FlipperUpdate(ref bpc);
+
+                // debug
+                var dbg = EngineProvider<IDebugUI>.Get();
+                bool isChanged = false;
+                float sa = phyFlipper._startAngle * 180.0f / Mathf.PI;
+                float se = phyFlipper._endAngle * 180.0f / Mathf.PI;
+
+                isChanged |= dbg.GetProperty(phyFlipper.dbgPropStartAngle, ref sa);
+                isChanged |= dbg.GetProperty(phyFlipper.dbgPropEndAngle, ref se);
+
+                if (isChanged) 
+                {
+                    phyFlipper._startAngle = sa * Mathf.PI / 180.0f;
+                    phyFlipper._endAngle = se * Mathf.PI / 180.0f;
+
+                    HingeConstraint hinge = (HingeConstraint)phyFlipper._constraint;
+                    if (phyFlipper.RotationDirection == 1)
+                    {
+                        hinge.SetLimit(phyFlipper._startAngle, phyFlipper._endAngle, 0.0f);
+                    }
+                    else
+                    {
+                        hinge.SetLimit(phyFlipper._endAngle, phyFlipper._startAngle, 0.0f);
+                    }
+                }
+                
             }
+        }
+
+        static int dbgFlippersRoot = -1;
+        int dbgThisFlipper = -1;
+        int dbgPropStartAngle = -1;
+        int dbgPropEndAngle = -1;
+
+        void _AddDebugProperties()
+        {
+            var dbg = EngineProvider<IDebugUI>.Get();
+            if (dbgFlippersRoot == -1)
+                dbgFlippersRoot = dbg.AddProperty(-1, "Flippers Props", this);
+
+            dbgThisFlipper = dbg.AddProperty(dbgFlippersRoot, base.name, this);
+            dbgPropStartAngle = dbg.AddProperty(dbgThisFlipper, "Start Angle", _startAngle * 180.0f / Mathf.PI);
+            dbgPropEndAngle = dbg.AddProperty(dbgThisFlipper, "End Angle", _endAngle * 180.0f / Mathf.PI);
         }
 
     }

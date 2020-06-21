@@ -22,7 +22,7 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
                 table.Table.Data.Elasticity * 100.0f);
 
             base.name = "[Playfield]";
-            base.matrix = Matrix.Translation(w, h, playfieldTickness);
+            base.matrix = Matrix.Translation(w, h, -playfieldTickness);
         }
     }
 }
