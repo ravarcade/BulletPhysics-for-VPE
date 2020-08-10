@@ -179,6 +179,7 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
                     }
                 }
             }
+
             PhyGate.dbg(entityManager);
         }
 
@@ -238,6 +239,7 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
                 {
                     motionStateView = phyBody.ToView(),
                     localToWorld = LocalToWorld,
+                    lockPosition = phyBody.lockPosition,
 #if UNITY_EDITOR
                     rigidBodyView = phyBody.body.ToView(),
 #endif
@@ -278,11 +280,12 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
             public void Convert(Entity entity, EntityManager dstManager, GameObjectConversionSystem conversionSystem)
             {
                 phyBody.Register(entity);
-                //dstManager.RemoveComponent<Parent>(entity); // yup... no parent, gates required this
+
                 dstManager.AddComponentData(entity, new BulletPhysicsTransformData
                 {
                     motionStateView = motionStateView,
                     localToWorld = localToWorld,
+                    lockPosition = phyBody.lockPosition,
 #if UNITY_EDITOR
                     rigidBodyView = rigidBodyView,
 #endif

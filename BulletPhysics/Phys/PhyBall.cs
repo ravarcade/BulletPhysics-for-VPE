@@ -8,7 +8,7 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
     {
         private readonly static Dictionary<Entity, PhyBall> _balls = new Dictionary<Entity, PhyBall>();
 
-        public PhyBall(Entity entity, float radius, float mass) : base(PhyType.Ball)
+        public PhyBall(Entity entity, float radius, float mass) : base(PhyType.Ball, false)
         {
             SetupRigidBody(mass, new SphereShape(radius));
             SetProperties(

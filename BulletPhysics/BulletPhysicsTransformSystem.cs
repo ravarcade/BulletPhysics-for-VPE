@@ -7,9 +7,7 @@ using VisualPinball.Engine.Unity.BulletPhysics;
 internal class BulletPhysicsTransformSystem : JobComponentSystem
 {
     protected override JobHandle OnUpdate(JobHandle inputDeps)
-    {
-        //var ltw = BulletPhysicsHub.LocalToWorld;
-
+    {        
         /**
 		 * Note:
 		 * (m * ltw).rotation = no rotation <- problem with math precision
@@ -24,7 +22,8 @@ internal class BulletPhysicsTransformSystem : JobComponentSystem
             var ms = transformData.motionStateView.ToBtTransform();
             var ltw = transformData.localToWorld;
             rototation.Value = ltw.rotation * ms.rot;
-            translation.Value = ltw.MultiplyPoint(ms.pos);
+            if (!transformData.lockPosition)
+                translation.Value = ltw.MultiplyPoint(ms.pos);
 
 #if UNITY_EDITOR
             // debug only in unity editor

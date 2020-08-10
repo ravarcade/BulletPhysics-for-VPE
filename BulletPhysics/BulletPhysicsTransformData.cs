@@ -8,6 +8,7 @@ public struct BulletPhysicsTransformData : IComponentData
 {
     public MotionStateNativeView motionStateView;
 	public Matrix4x4 localToWorld;
+	public bool lockPosition;
 
 #if UNITY_EDITOR
 	// all below is used for debug

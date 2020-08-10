@@ -11,11 +11,19 @@ using FluentAssertions;
 using Unity.Transforms;
 using VisualPinball.Unity.Extensions;
 using VisualPinball.Engine.VPT.Spinner;
+using BulletSharp.Math;
 
 namespace VisualPinball.Engine.Unity.BulletPhysics
 {
     public class PhyGate : PhyBody
-    {
+    {        
+        enum GateType
+        {
+            Spinner = 0, // yea... i want to use gate as spinner...
+            OneWay = 1,
+            TwoWay = 2
+        }
+
         public float Mass;
 
         HingeConstraint _constraint = null;
@@ -26,25 +34,23 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
         float _length;
         float _thickness;
         float _barHeight;
+        float _rotation;
         float _startAngle;
         float _endAngle;
 
-        // yea... i want to use gate as spinner...
-        enum GateType
-        {
-            Spinner = 0,
-            OneWay = 1,
-            TwoWay = 2            
-        }
         GateType _type = GateType.Spinner;
+
+        static List<PhyGate> _gates = new List<PhyGate>();
 
         public PhyGate(GateBehavior gate, GateWireBehavior wire) : base(PhyType.Gate)
         {
             Mass = 0.4f; // why gates don't have mass?
 
+            _rotation = gate.data.Rotation.ToRad();
             _startAngle = gate.data.AngleMin - 10.0f.ToRad();
             _endAngle = gate.data.AngleMax + 10.0f.ToRad();
             _type = gate.data.TwoWay ? GateType.TwoWay : GateType.OneWay;
+            //s_type = GateType.TwoWays;
             if (_type == GateType.TwoWay)
                 _startAngle = -_endAngle;
 
@@ -93,16 +99,36 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
 
         HingeConstraint _AddGateHinge()
         {
+            Matrix AFrame = Matrix.RotationX(0) * Matrix.RotationZ(90.0f.ToRad()) * Matrix.RotationY(90.0f.ToRad()) * Matrix.Translation(offset); // rotatione required to make X axis pivot
+            Matrix BFrame = AFrame * matrix;
+
+            //var hinge = new HingeConstraint(
+            //    body,
+            //    Vector3.Zero + base.offset,
+            //    Vector3.UnitX,
+            //    true);
+
+            //var ma = hinge.AFrame;
+            //var mb = hinge.BFrame;
+            //var oa = hinge.FrameOffsetA;
+            //var ob = hinge.FrameOffsetB;
+            //var im = matrix;
+            //im.Invert();
+            //var mb2 = mb * im;
+
+            //hinge.Dispose();
             var hinge = new HingeConstraint(
                 body,
-                Vector3.Zero + base.offset,
-                Vector3.UnitX,
-                false);
+                TypedConstraint.GetFixedBody(),
+                AFrame,
+                BFrame,
+                true) ;
 
             if (_type!= GateType.Spinner)
             {
-                hinge.SetLimit(-_endAngle, -_startAngle, 0.0f); // revers angles to have same as in VPX behavior
+                hinge.SetLimit(_startAngle, _endAngle, 0.0f); // revers angles to have same as in VPX behavior
             }
+            
             
             //body.ActivationState = ActivationState.DisableDeactivation;
             //body.SetSleepingThresholds(float.MaxValue, 0.0f); // no sleep for flippers
@@ -125,50 +151,60 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
             return new BoxShape(_length * 0.5f, _thickness * 0.5f, _barHeight * 0.25f); // bar = 30% of height
         }
 
-        public static Entity lastGate = Entity.Null;
-        public static PhyGate phyGate = null;
-
         public override void Register(Entity entity)
         {
-            lastGate = entity;
-            phyGate = this;
             base.Register(entity);
+            _gates.Add(this);
+            AddGetToDebugWindow();
+        }
+
+        // ===================================================================== Part used only with ImGUI debug window ===
+
+        static int dbgGate = -1;
+        int dbgSa = -1;
+        int dbgEa = -1;
+        int dbgDamping = -1;
+        int dbgHa = -1;
+
+        private void AddGetToDebugWindow()
+        { 
+            var dbg = EngineProvider<IDebugUI>.Get();
+            if (dbg != null)
+            {
+                if (dbgGate == -1)
+                    dbgGate = dbg.AddProperty(-1, "Gates", this);
+
+                int me = dbg.AddProperty(dbgGate, base.name, this);
+                dbgSa = dbg.AddProperty(me, "start angle", _startAngle.ToDeg());
+                dbgEa = dbg.AddProperty(me, "end angle", _endAngle.ToDeg());
+                dbgDamping = dbg.AddProperty(me, "damping", body.AngularDamping);
+                dbgHa = dbg.AddProperty(me, "angle", 0.0f);
+            }
+
         }
 
         public static void dbg(EntityManager entityManager)
         {
             var dbg = EngineProvider<IDebugUI>.Get();
-            
-            if (phyGate != null)
+            if (dbg == null)
+                return;
+
+            foreach (var gate in _gates)
             {
-                var sa = phyGate._startAngle.ToDeg();
-                var ea = phyGate._endAngle.ToDeg();
-                bool isChanged = false;
-                isChanged |= dbg.QuickPropertySync("start angle", ref sa);
-                isChanged |= dbg.QuickPropertySync("end angle", ref ea);
-                if (isChanged)
-                {
-                    phyGate._startAngle = sa.ToRad();
-                    phyGate._endAngle = ea.ToRad();
-                    phyGate._constraint.SetLimit(-ea.ToRad(), -sa.ToRad(), 0.0f);
-                }
-            }
+                bool isLimitChanged = false;
 
-            if (lastGate != Entity.Null && entityManager.HasComponent<BulletPhysicsTransformData>(lastGate))
-            {
-                var td = entityManager.GetComponentData<BulletPhysicsTransformData>(lastGate);
-                if (dbg.QuickPropertySync("diag", ref td.localToWorld))
-                {
-                    entityManager.SetComponentData(lastGate, td);
-                }
+                float sa = 0, ea = 0, damping = 0;
 
-                float damp = phyGate.body.AngularDamping;
-                if (dbg.QuickPropertySync("damping", ref damp))
-                {
-                    phyGate.body.SetDamping(damp, damp);
-                }
+                isLimitChanged |= dbg.GetProperty(gate.dbgSa, ref sa);
+                isLimitChanged |= dbg.GetProperty(gate.dbgEa, ref ea);
+                if (isLimitChanged)
+                    gate._constraint.SetLimit(sa.ToRad(), ea.ToRad(), 0);
 
-            }
+                if (dbg.GetProperty(gate.dbgDamping, ref damping))
+                    gate.body.SetDamping(damping, damping);
+                float ha = gate._constraint.HingeAngle.ToDeg();
+                dbg.SetProperty(gate.dbgHa, ha); // we don't read it... only display
+            }            
         }
     } // PhyGate
 

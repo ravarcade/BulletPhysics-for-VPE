@@ -22,6 +22,7 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
     public class PhyBody
     {
         private PhyType _phyType;
+        private bool _lockPosition;
         private CollisionObject _collisionObject;
         private string _name = "";
         private Entity _entity = Entity.Null;
@@ -43,9 +44,10 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
         /// Base class for all Phy[something] objects.
         /// </summary>
         /// <param name="phyType">Type of object in bullet physics.</param>
-        protected PhyBody(PhyType phyType = PhyType.Static)
+        protected PhyBody(PhyType phyType = PhyType.Static, bool lockPosition = true)
         {
             _phyType = phyType;
+            _lockPosition = lockPosition;
         }
 
         public void SetupRigidBody(float mass, CollisionShape shape, float margin = 0.04f)
@@ -61,6 +63,7 @@ namespace VisualPinball.Engine.Unity.BulletPhysics
         }
 
         public short phyType { get { return (short)_phyType; } }
+        public bool lockPosition { get => _lockPosition; }
 
         public RigidBody body { get { return (RigidBody)_collisionObject; } }
 
